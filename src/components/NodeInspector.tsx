@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import type { AppNode, NodeKind } from "../types";
-import { MODEL_OPTIONS } from "../types";
+import { BUILTIN_MODELS } from "../types";
 
 type Props = {
   node: AppNode | null;
@@ -22,6 +24,22 @@ export function NodeInspector({ node, onChange, onDelete }: Props) {
   }
 
   const kind = node.type as NodeKind;
+  const [models, setModels] = useState<string[]>(BUILTIN_MODELS);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const local = await invoke<string[]>("ollama_models");
+        if (cancelled) return;
+        const localPrefixed = local.map((m) => `ollama-local/${m}`);
+        setModels(Array.from(new Set([...BUILTIN_MODELS, ...localPrefixed])));
+      } catch {
+        // Ollama unreachable; stick with built-ins.
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   return (
     <aside className="flex h-full w-80 flex-col border-l border-neutral-800 bg-neutral-950">
@@ -55,14 +73,14 @@ export function NodeInspector({ node, onChange, onDelete }: Props) {
                 onChange={(e) => onChange(node.id, { model: e.target.value })}
                 className="w-full rounded border border-neutral-800 bg-neutral-900 px-2 py-1 text-neutral-100 focus:border-neutral-600 focus:outline-none"
               >
-                {MODEL_OPTIONS.map((m) => (
+                {models.map((m: string) => (
                   <option key={m} value={m}>
                     {m}
                   </option>
                 ))}
               </select>
               <p className="mt-1 text-[10px] text-neutral-600">
-                Placeholder only — real routing lands in P1.
+                Built-in models + your local Ollama. Routed via the OpenClaw gateway.
               </p>
             </Field>
             <Field label="Prompt">
@@ -120,7 +138,7 @@ export function NodeInspector({ node, onChange, onDelete }: Props) {
               <input
                 value={(node.data as { path: string }).path}
                 onChange={(e) => onChange(node.id, { path: e.target.value })}
-                placeholder="Daily/2026-05-11.md"
+                placeholder="10-Daily/2026-05-12.md"
                 className="w-full rounded border border-neutral-800 bg-neutral-900 px-2 py-1 text-neutral-100 focus:border-neutral-600 focus:outline-none"
               />
             </Field>
@@ -128,9 +146,20 @@ export function NodeInspector({ node, onChange, onDelete }: Props) {
               <input
                 value={(node.data as { section: string }).section}
                 onChange={(e) => onChange(node.id, { section: e.target.value })}
-                placeholder="## Notes"
+                placeholder="Notes"
                 className="w-full rounded border border-neutral-800 bg-neutral-900 px-2 py-1 text-neutral-100 focus:border-neutral-600 focus:outline-none"
               />
+            </Field>
+            <Field label="Mode">
+              <select
+                value={(node.data as { mode?: string }).mode ?? "section"}
+                onChange={(e) => onChange(node.id, { mode: e.target.value })}
+                className="w-full rounded border border-neutral-800 bg-neutral-900 px-2 py-1 text-neutral-100 focus:border-neutral-600 focus:outline-none"
+              >
+                <option value="section">section (replace/append heading)</option>
+                <option value="append">append (raw)</option>
+                <option value="overwrite">overwrite file</option>
+              </select>
             </Field>
           </>
         )}
