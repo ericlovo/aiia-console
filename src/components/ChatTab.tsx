@@ -196,9 +196,22 @@ export function ChatTab() {
     setSessions(list);
   }, []);
 
-  // Load model list + sessions on mount.
+  // Load model list + sessions on mount. If sessions already exist, open the
+  // most recent one so the user returns to where they left off; otherwise
+  // keep the empty-state draft.
+  const bootedRef = useRef(false);
   useEffect(() => {
-    void refreshSessions();
+    void (async () => {
+      const list = await backendListSessions();
+      setSessions(list);
+      if (!bootedRef.current && list.length > 0) {
+        bootedRef.current = true;
+        const loaded = await backendLoadSession(list[0].id);
+        if (loaded) setActive(loaded);
+      } else {
+        bootedRef.current = true;
+      }
+    })();
     void (async () => {
       const m = await listAllModels();
       setModels(m);
@@ -207,7 +220,9 @@ export function ChatTab() {
       const choice = local ?? m[0] ?? null;
       if (choice) setModel(`${choice.provider}:${choice.id}`);
     })();
-  }, [refreshSessions]);
+    // Only run on mount; refreshSessions is invoked manually after writes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Restart any in-flight stream when switching sessions.
   const switchSession = useCallback(
