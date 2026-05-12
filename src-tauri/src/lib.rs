@@ -9,9 +9,15 @@ use std::path::PathBuf;
 use serde::Serialize;
 use serde_json::Value;
 
+mod keystore;
+use keystore::{
+    keystore_call, keystore_call_cancel, keystore_delete_key, keystore_get_keys,
+    keystore_set_key, InflightCancel,
+};
+
 // ---------- shared path helpers ----------
 
-fn home() -> Result<PathBuf, String> {
+pub fn home() -> Result<PathBuf, String> {
     dirs::home_dir().ok_or_else(|| "could not resolve home dir".to_string())
 }
 
@@ -337,6 +343,7 @@ async fn ollama_models() -> Result<Vec<String>, String> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .manage(InflightCancel::new())
         .invoke_handler(tauri::generate_handler![
             save_flow,
             load_flow,
@@ -345,6 +352,11 @@ pub fn run() {
             vault_write,
             gateway_config,
             ollama_models,
+            keystore_get_keys,
+            keystore_set_key,
+            keystore_delete_key,
+            keystore_call,
+            keystore_call_cancel,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
