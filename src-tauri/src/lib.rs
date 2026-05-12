@@ -9,7 +9,12 @@ use std::path::PathBuf;
 use serde::Serialize;
 use serde_json::Value;
 
+mod brain;
 mod keystore;
+use brain::{
+    brain_forget, brain_get_memory, brain_list_memories, brain_remember, brain_search,
+    brain_status,
+};
 use keystore::{
     keystore_call, keystore_call_cancel, keystore_delete_key, keystore_get_keys,
     keystore_set_key, InflightCancel,
@@ -515,6 +520,12 @@ pub fn run() {
             keystore_delete_key,
             keystore_call,
             keystore_call_cancel,
+            brain_status,
+            brain_list_memories,
+            brain_get_memory,
+            brain_remember,
+            brain_forget,
+            brain_search,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
