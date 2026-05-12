@@ -14,6 +14,7 @@ import { LeftRail } from "./components/LeftRail";
 import { NodeInspector } from "./components/NodeInspector";
 import { NodePalette } from "./components/NodePalette";
 import { SettingsModal } from "./components/SettingsModal";
+import { ChatTab } from "./components/ChatTab";
 import type { AppNode, FlowNodeData, NodeKind } from "./types";
 import { defaultDataFor, stripRuntime } from "./types";
 import { runFlow, writeSession, type NodeUpdate } from "./executor";
@@ -418,11 +419,7 @@ function App() {
 
       {/* Tab body */}
       <div className="flex min-h-0 flex-1">
-        {activeTab === "chat" && (
-          <div className="flex flex-1 items-center justify-center text-neutral-500">
-            <div className="text-sm">Chat tab — coming online…</div>
-          </div>
-        )}
+        {activeTab === "chat" && <ChatTab />}
 
         {activeTab === "memory" && (
           <div className="flex flex-1 items-center justify-center text-neutral-500">
