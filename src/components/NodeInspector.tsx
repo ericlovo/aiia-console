@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import type { AppNode, NodeKind } from "../types";
-import { BUILTIN_MODELS, getProviderModelId } from "../types";
+import { getProviderModelId } from "../types";
+import {
+  listAllModels,
+  listProviders,
+} from "../providers";
+import type { ModelInfo, ProviderInfo } from "../providers/types";
 
 type Props = {
   node: AppNode | null;
@@ -24,32 +29,26 @@ export function NodeInspector({ node, onChange, onDelete }: Props) {
   }
 
   const kind = node.type as NodeKind;
-  type ModelOption = { providerModelId: string; label: string };
-  const [models, setModels] = useState<ModelOption[]>(BUILTIN_MODELS);
+  const [models, setModels] = useState<ModelInfo[]>([]);
+  const [keysPresent, setKeysPresent] = useState<Record<string, boolean>>({});
+  const providers: ProviderInfo[] = listProviders();
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      try {
-        const local = await invoke<string[]>("ollama_models");
-        if (cancelled) return;
-        const localOptions: ModelOption[] = local.map((m) => ({
-          providerModelId: `ollama:${m}`,
-          label: `Ollama / ${m}`,
-        }));
-        // Dedupe by providerModelId, local first so it wins.
-        const seen = new Set<string>();
-        const merged = [...localOptions, ...BUILTIN_MODELS].filter((o) => {
-          if (seen.has(o.providerModelId)) return false;
-          seen.add(o.providerModelId);
-          return true;
-        });
-        setModels(merged);
-      } catch {
-        // Ollama unreachable; stick with built-ins.
-      }
+      const [all, keys] = await Promise.all([
+        listAllModels(),
+        invoke<Record<string, boolean>>("keystore_get_keys").catch(
+          () => ({} as Record<string, boolean>),
+        ),
+      ]);
+      if (cancelled) return;
+      setModels(all);
+      setKeysPresent(keys);
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
@@ -80,7 +79,9 @@ export function NodeInspector({ node, onChange, onDelete }: Props) {
           <>
             <Field label="Model">
               <select
-                value={getProviderModelId(node.data as { providerModelId?: string; model?: string })}
+                value={getProviderModelId(
+                  node.data as { providerModelId?: string; model?: string },
+                )}
                 onChange={(e) =>
                   onChange(node.id, {
                     providerModelId: e.target.value,
@@ -90,14 +91,10 @@ export function NodeInspector({ node, onChange, onDelete }: Props) {
                 }
                 className="w-full rounded border border-neutral-800 bg-neutral-900 px-2 py-1 text-neutral-100 focus:border-neutral-600 focus:outline-none"
               >
-                {models.map((m) => (
-                  <option key={m.providerModelId} value={m.providerModelId}>
-                    {m.label}
-                  </option>
-                ))}
+                {renderGroupedModelOptions(models, providers, keysPresent)}
               </select>
               <p className="mt-1 text-[10px] text-neutral-600">
-                Built-in models + your local Ollama.
+                Local + remote providers. Remote needs an API key (gear icon).
               </p>
             </Field>
             <Field label="Prompt">
@@ -186,6 +183,57 @@ export function NodeInspector({ node, onChange, onDelete }: Props) {
         id: {node.id}
       </div>
     </aside>
+  );
+}
+
+function renderGroupedModelOptions(
+  models: ModelInfo[],
+  providers: ProviderInfo[],
+  keysPresent: Record<string, boolean>,
+) {
+  // Group by provider id, ordered with locals first, then remotes alphabetical.
+  const byProvider = new Map<string, ModelInfo[]>();
+  for (const m of models) {
+    if (!byProvider.has(m.provider)) byProvider.set(m.provider, []);
+    byProvider.get(m.provider)!.push(m);
+  }
+  const locals = providers.filter((p) => p.kind === "local");
+  const remotes = providers
+    .filter((p) => p.kind === "remote")
+    .sort((a, b) => a.label.localeCompare(b.label));
+
+  const renderGroup = (groupLabel: string, infos: ProviderInfo[]) => (
+    <optgroup key={groupLabel} label={groupLabel}>
+      {infos.flatMap((p) => {
+        const list = byProvider.get(p.id) ?? [];
+        const needsKey = p.kind === "remote" && !keysPresent[p.id];
+        if (list.length === 0) {
+          // Show a disabled placeholder so the provider is at least visible.
+          return [
+            <option key={`${p.id}-none`} value="" disabled>
+              {p.label} (no models)
+            </option>,
+          ];
+        }
+        return list.map((m) => (
+          <option
+            key={`${m.provider}:${m.id}`}
+            value={`${m.provider}:${m.id}`}
+            disabled={needsKey}
+          >
+            {p.label} / {m.label}
+            {needsKey ? " — needs key" : ""}
+          </option>
+        ));
+      })}
+    </optgroup>
+  );
+
+  return (
+    <>
+      {renderGroup("Local", locals)}
+      {renderGroup("Remote", remotes)}
+    </>
   );
 }
 
