@@ -1,14 +1,395 @@
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
+// Tauri commands for the AIIA Console.
+// All filesystem writes are confined to ~/AIIA. Gateway config is read from
+// ~/.openclaw/openclaw.json so the frontend can authenticate to the local
+// OpenClaw gateway without env vars.
+
+use std::fs;
+use std::path::PathBuf;
+
+use serde::Serialize;
+use serde_json::Value;
+
+mod keystore;
+use keystore::{
+    keystore_call, keystore_call_cancel, keystore_delete_key, keystore_get_keys,
+    keystore_set_key, InflightCancel,
+};
+
+// ---------- shared path helpers ----------
+
+pub fn home() -> Result<PathBuf, String> {
+    dirs::home_dir().ok_or_else(|| "could not resolve home dir".to_string())
 }
+
+fn aiia_root() -> Result<PathBuf, String> {
+    Ok(home()?.join("AIIA"))
+}
+
+/// Resolve a vault-relative path and guarantee it stays inside ~/AIIA.
+/// Accepts strings with or without a leading "AIIA/" prefix. Rejects empty,
+/// absolute, or traversal paths.
+fn vault_path(rel: &str) -> Result<PathBuf, String> {
+    if rel.is_empty() {
+        return Err("vault path is empty".into());
+    }
+    if rel.starts_with('/') {
+        return Err(format!("absolute paths not allowed: {}", rel));
+    }
+    if rel.split(['/', '\\']).any(|seg| seg == ".." || seg.is_empty() && rel != "/") {
+        return Err(format!("traversal not allowed: {}", rel));
+    }
+    let trimmed = rel.strip_prefix("AIIA/").unwrap_or(rel);
+    let root = aiia_root()?;
+    let joined = root.join(trimmed);
+
+    // Canonicalize when possible to catch symlink escapes; fall back when the
+    // file doesn't exist yet (writes).
+    let canon = match joined.canonicalize() {
+        Ok(c) => c,
+        Err(_) => {
+            // Canonicalize the parent so we still verify containment for writes.
+            let parent = joined
+                .parent()
+                .ok_or_else(|| "could not resolve parent".to_string())?;
+            let parent_canon = parent
+                .canonicalize()
+                .map_err(|e| format!("parent does not exist: {} ({})", parent.display(), e))?;
+            parent_canon.join(
+                joined
+                    .file_name()
+                    .ok_or_else(|| "missing file name".to_string())?,
+            )
+        }
+    };
+
+    let root_canon = root
+        .canonicalize()
+        .map_err(|e| format!("vault root missing: {} ({})", root.display(), e))?;
+    if !canon.starts_with(&root_canon) {
+        return Err(format!("path escapes vault: {}", rel));
+    }
+    Ok(canon)
+}
+
+// ---------- flow file commands (existing) ----------
+
+fn flow_path(name: &str) -> Result<PathBuf, String> {
+    if name.is_empty()
+        || name.contains('/')
+        || name.contains('\\')
+        || name.contains("..")
+    {
+        return Err(format!("invalid flow name: {}", name));
+    }
+    let dir = aiia_root()?.join("Flows");
+    fs::create_dir_all(&dir).map_err(|e| format!("mkdir failed: {}", e))?;
+    let filename = if name.ends_with(".flow.json") {
+        name.to_string()
+    } else {
+        format!("{}.flow.json", name)
+    };
+    Ok(dir.join(filename))
+}
+
+#[tauri::command]
+fn save_flow(name: String, contents: String) -> Result<String, String> {
+    let path = flow_path(&name)?;
+    fs::write(&path, contents).map_err(|e| format!("write failed: {}", e))?;
+    Ok(path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+fn load_flow(name: String) -> Result<String, String> {
+    let path = flow_path(&name)?;
+    if !path.exists() {
+        return Err(format!("flow not found: {}", path.to_string_lossy()));
+    }
+    fs::read_to_string(&path).map_err(|e| format!("read failed: {}", e))
+}
+
+#[tauri::command]
+fn list_flows() -> Result<Vec<String>, String> {
+    let dir = aiia_root()?.join("Flows");
+    if !dir.exists() {
+        return Ok(vec![]);
+    }
+    let mut out = Vec::new();
+    for entry in fs::read_dir(&dir).map_err(|e| format!("read_dir failed: {}", e))? {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let name = entry.file_name().to_string_lossy().to_string();
+        if name.ends_with(".flow.json") {
+            out.push(name);
+        }
+    }
+    out.sort();
+    Ok(out)
+}
+
+// ---------- vault read/write ----------
+
+#[tauri::command]
+fn vault_read(path: String) -> Result<String, String> {
+    let p = vault_path(&path)?;
+    if !p.exists() {
+        return Err(format!("not found: {}", p.display()));
+    }
+    if p.is_file() {
+        return fs::read_to_string(&p).map_err(|e| format!("read failed: {}", e));
+    }
+    if p.is_dir() {
+        // Return a directory listing as a markdown-ish block.
+        let mut out = String::new();
+        out.push_str(&format!("# Directory: {}\n\n", p.display()));
+        let mut entries: Vec<_> = fs::read_dir(&p)
+            .map_err(|e| format!("read_dir failed: {}", e))?
+            .filter_map(|r| r.ok())
+            .collect();
+        entries.sort_by_key(|e| e.file_name());
+        for entry in entries {
+            let name = entry.file_name().to_string_lossy().to_string();
+            if name.starts_with('.') {
+                continue;
+            }
+            let kind = if entry.path().is_dir() { "dir" } else { "file" };
+            out.push_str(&format!("- [{}] {}\n", kind, name));
+        }
+        return Ok(out);
+    }
+    Err(format!("unsupported path type: {}", p.display()))
+}
+
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+enum WriteMode {
+    Overwrite,
+    Append,
+    Section,
+}
+
+#[tauri::command]
+fn vault_write(
+    path: String,
+    content: String,
+    mode: Option<String>,
+    section: Option<String>,
+) -> Result<String, String> {
+    let p = vault_path(&path)?;
+    let mode = match mode.as_deref().unwrap_or("overwrite") {
+        "overwrite" => WriteMode::Overwrite,
+        "append" => WriteMode::Append,
+        "section" => WriteMode::Section,
+        other => return Err(format!("unknown write mode: {}", other)),
+    };
+
+    if let Some(parent) = p.parent() {
+        fs::create_dir_all(parent).map_err(|e| format!("mkdir failed: {}", e))?;
+    }
+
+    match mode {
+        WriteMode::Overwrite => {
+            fs::write(&p, content).map_err(|e| format!("write failed: {}", e))?;
+        }
+        WriteMode::Append => {
+            use std::io::Write;
+            let mut f = fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(&p)
+                .map_err(|e| format!("open failed: {}", e))?;
+            f.write_all(content.as_bytes())
+                .map_err(|e| format!("append failed: {}", e))?;
+        }
+        WriteMode::Section => {
+            let header = section.ok_or_else(|| "section mode requires 'section'".to_string())?;
+            let existing = if p.exists() {
+                fs::read_to_string(&p).unwrap_or_default()
+            } else {
+                String::new()
+            };
+            let new_block = format!("## {}\n\n{}\n", header, content.trim_end());
+            let updated = replace_or_append_section(&existing, &header, &new_block);
+            fs::write(&p, updated).map_err(|e| format!("write failed: {}", e))?;
+        }
+    }
+    Ok(p.to_string_lossy().to_string())
+}
+
+fn replace_or_append_section(existing: &str, section: &str, new_block: &str) -> String {
+    // Find "## <section>" line and replace until next "## " or EOF.
+    let needle = format!("## {}", section);
+    let mut lines: Vec<&str> = existing.lines().collect();
+    let start = lines.iter().position(|l| l.trim() == needle.trim());
+    if let Some(s) = start {
+        let mut e = lines.len();
+        for (i, line) in lines.iter().enumerate().skip(s + 1) {
+            if line.starts_with("## ") {
+                e = i;
+                break;
+            }
+        }
+        let mut out = String::new();
+        for (i, line) in lines.iter().enumerate() {
+            if i == s {
+                out.push_str(new_block);
+                if !new_block.ends_with('\n') {
+                    out.push('\n');
+                }
+            }
+            if i < s || i >= e {
+                out.push_str(line);
+                out.push('\n');
+            }
+        }
+        out
+    } else {
+        // Append, ensuring blank line separation.
+        let mut out = String::from(existing);
+        if !out.ends_with("\n\n") {
+            if out.ends_with('\n') {
+                out.push('\n');
+            } else {
+                out.push_str("\n\n");
+            }
+        }
+        out.push_str(new_block);
+        let _ = &mut lines;
+        out
+    }
+}
+
+// ---------- gateway config (read-only) ----------
+
+#[derive(Serialize)]
+struct GatewayInfo {
+    base_url: String,
+    auth_mode: String,
+    token: Option<String>,
+    model_default: Option<String>,
+}
+
+#[tauri::command]
+fn gateway_config() -> Result<GatewayInfo, String> {
+    let cfg_path = home()?.join(".openclaw").join("openclaw.json");
+    let raw = fs::read_to_string(&cfg_path)
+        .map_err(|e| format!("read openclaw.json failed: {}", e))?;
+    let cfg: Value = serde_json::from_str(&raw)
+        .map_err(|e| format!("parse openclaw.json failed: {}", e))?;
+
+    // Default OpenClaw gateway port.
+    let port = cfg
+        .pointer("/gateway/port")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(18789);
+    let base_url = format!("http://127.0.0.1:{}", port);
+
+    let auth_mode = cfg
+        .pointer("/gateway/auth/mode")
+        .and_then(|v| v.as_str())
+        .unwrap_or("none")
+        .to_string();
+    let token = cfg
+        .pointer("/gateway/auth/token")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    let model_default = cfg
+        .pointer("/agents/defaults/model/primary")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+
+    Ok(GatewayInfo {
+        base_url,
+        auth_mode,
+        token,
+        model_default,
+    })
+}
+
+// ---------- model list (via Ollama HTTP) ----------
+
+#[tauri::command]
+async fn ollama_models() -> Result<Vec<String>, String> {
+    // Quick passthrough so the UI can show locally-installed models.
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(5))
+        .build()
+        .map_err(|e| format!("http client init failed: {}", e))?;
+    let resp = client
+        .get("http://127.0.0.1:11434/api/tags")
+        .send()
+        .await
+        .map_err(|e| format!("ollama unreachable: {}", e))?;
+    if !resp.status().is_success() {
+        return Err(format!("ollama returned {}", resp.status()));
+    }
+    let body: Value = resp
+        .json()
+        .await
+        .map_err(|e| format!("ollama json parse failed: {}", e))?;
+    let models = body
+        .get("models")
+        .and_then(|v| v.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|m| m.get("name").and_then(|n| n.as_str()).map(String::from))
+                .collect()
+        })
+        .unwrap_or_default();
+    Ok(models)
+}
+
+// ---------- entry ----------
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![greet])
+        .manage(InflightCancel::new())
+        .invoke_handler(tauri::generate_handler![
+            save_flow,
+            load_flow,
+            list_flows,
+            vault_read,
+            vault_write,
+            gateway_config,
+            ollama_models,
+            keystore_get_keys,
+            keystore_set_key,
+            keystore_delete_key,
+            keystore_call,
+            keystore_call_cancel,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn section_replace_basic() {
+        let existing = "# Note\n\n## Old\n\nold body\n\n## Keep\n\nkeep me\n";
+        let new_block = "## Old\n\nnew body\n";
+        let out = replace_or_append_section(existing, "Old", new_block);
+        assert!(out.contains("new body"));
+        assert!(!out.contains("old body"));
+        assert!(out.contains("keep me"));
+    }
+
+    #[test]
+    fn section_append_when_missing() {
+        let existing = "# Note\n\nbody\n";
+        let new_block = "## Added\n\nnew\n";
+        let out = replace_or_append_section(existing, "Added", new_block);
+        assert!(out.contains("body"));
+        assert!(out.contains("## Added"));
+    }
+
+    #[test]
+    fn rejects_traversal() {
+        assert!(vault_path("../etc/passwd").is_err());
+        assert!(vault_path("/etc/passwd").is_err());
+        assert!(vault_path("").is_err());
+    }
+
 }
