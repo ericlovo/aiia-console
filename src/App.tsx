@@ -20,6 +20,10 @@ import { runFlow, writeSession, type NodeUpdate } from "./executor";
 import "./App.css";
 
 const DEFAULT_FLOW = "untitled.flow.json";
+const DEV_MODE_KEY = "aiia-console-dev-mode";
+const ACTIVE_TAB_KEY = "aiia-console-active-tab";
+
+type TabId = "chat" | "memory" | "dev";
 
 type FlowFile = {
   version: 1;
@@ -34,7 +38,48 @@ function nextId(prefix: NodeKind, existing: AppNode[]): string {
   return `${prefix}-${i}`;
 }
 
+function readDevMode(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.localStorage.getItem(DEV_MODE_KEY) === "true";
+}
+
+function readActiveTab(devMode: boolean): TabId {
+  if (typeof window === "undefined") return "chat";
+  const raw = window.localStorage.getItem(ACTIVE_TAB_KEY);
+  if (raw === "chat" || raw === "memory") return raw;
+  if (raw === "dev" && devMode) return "dev";
+  return "chat";
+}
+
 function App() {
+  const [devMode, setDevMode] = useState<boolean>(readDevMode);
+  const [activeTab, setActiveTab] = useState<TabId>(() => readActiveTab(readDevMode()));
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // Persist devMode + activeTab to localStorage.
+  useEffect(() => {
+    window.localStorage.setItem(DEV_MODE_KEY, devMode ? "true" : "false");
+    // If devMode is turned off while on the dev tab, bounce to chat.
+    if (!devMode && activeTab === "dev") {
+      setActiveTab("chat");
+    }
+  }, [devMode, activeTab]);
+
+  useEffect(() => {
+    window.localStorage.setItem(ACTIVE_TAB_KEY, activeTab);
+  }, [activeTab]);
+
+  // Listen for cross-component devMode flips (Settings modal toggle).
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const next = (e as CustomEvent<boolean>).detail;
+      if (typeof next === "boolean") setDevMode(next);
+    };
+    window.addEventListener("aiia-console:dev-mode", handler);
+    return () => window.removeEventListener("aiia-console:dev-mode", handler);
+  }, []);
+
+  // ---- Canvas state (only used when devMode + dev tab) ----
   const [nodes, setNodes] = useState<AppNode[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [viewport, setViewport] = useState<Viewport>({ x: 0, y: 0, zoom: 1 });
@@ -44,10 +89,8 @@ function App() {
   const [status, setStatus] = useState<string>("ready");
   const [error, setError] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
-  // Ref-mirror so the executor's onUpdate callback can see latest nodes.
   const nodesRef = useRef<AppNode[]>([]);
   useEffect(() => { nodesRef.current = nodes; }, [nodes]);
 
@@ -56,7 +99,6 @@ function App() {
     [nodes, selectedId],
   );
 
-  // ---- Flow list ----
   const refreshFlows = useCallback(async () => {
     try {
       const list = await invoke<string[]>("list_flows");
@@ -67,10 +109,9 @@ function App() {
   }, []);
 
   useEffect(() => {
-    refreshFlows();
-  }, [refreshFlows]);
+    if (devMode) refreshFlows();
+  }, [devMode, refreshFlows]);
 
-  // ---- Graph mutations ----
   const onNodesChange = useCallback(
     (changes: NodeChange<AppNode>[]) => {
       setNodes((nds) => applyNodeChanges(changes, nds));
@@ -131,13 +172,11 @@ function App() {
     [],
   );
 
-  // ---- Save / Load ----
   const baseName = (name: string) => name.replace(/\.flow\.json$/, "");
 
   const save = useCallback(async () => {
     setError(null);
     setStatus("saving…");
-    // Strip runtime fields before persisting.
     const persistedNodes = nodes.map((n) => ({
       ...n,
       data: stripRuntime(n.data) as typeof n.data,
@@ -189,7 +228,6 @@ function App() {
     [addNode],
   );
 
-  // ---- Run / Cancel ----
   const applyUpdate = useCallback((u: NodeUpdate) => {
     setNodes((nds) =>
       nds.map((n) => {
@@ -214,7 +252,6 @@ function App() {
     if (running) return;
     setError(null);
     if (nodes.length === 0) { setError("nothing to run — add some nodes first"); return; }
-    // Reset runtime state.
     setNodes((nds) =>
       nds.map((n) => ({
         ...n,
@@ -244,7 +281,6 @@ function App() {
           startedAt,
           endedAt,
           outputs: result.outputs,
-          // Use the latest node state for prompts/labels in the session writeup.
           nodes: nodesRef.current,
         });
         setStatus(`run complete · session → ${sessionPath.replace(/^.*AIIA\//, "")}`);
@@ -267,28 +303,33 @@ function App() {
     setStatus("cancelling…");
   }, []);
 
+  // ---- Tab navigation buttons ----
+  const tabs: { id: TabId; label: string }[] = [
+    { id: "chat", label: "Chat" },
+    { id: "memory", label: "Memory" },
+    ...(devMode ? [{ id: "dev" as const, label: "Dev" }] : []),
+  ];
+
   return (
     <div className="flex h-screen flex-col bg-neutral-950 text-neutral-100">
+      {/* Top bar */}
       <header className="flex items-center justify-between border-b border-neutral-800 px-5 py-2.5">
         <div className="flex items-center gap-3">
-          <span className="text-base font-semibold tracking-tight">AIIA</span>
-          <span className="text-xs text-neutral-500">console</span>
-          <span className="ml-3 rounded bg-neutral-900 px-2 py-0.5 font-mono text-[11px] text-neutral-400">
-            {baseName(currentFlow)}
+          <span className="text-base font-semibold tracking-tight">
+            <span aria-hidden className="mr-1.5 text-neutral-400">⌬</span>
+            AIIA Console
           </span>
+          {activeTab === "dev" && (
+            <span className="ml-3 rounded bg-neutral-900 px-2 py-0.5 font-mono text-[11px] text-neutral-400">
+              {baseName(currentFlow)}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[11px] text-neutral-500">{status}</span>
-          <button
-            type="button"
-            onClick={() => setSettingsOpen(true)}
-            title="API keys"
-            aria-label="Settings"
-            className="rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs text-neutral-300 hover:border-neutral-500 hover:text-neutral-100"
-          >
-            ⚙
-          </button>
-          {running ? (
+          {activeTab === "dev" && (
+            <span className="text-[11px] text-neutral-500">{status}</span>
+          )}
+          {activeTab === "dev" && (running ? (
             <button
               type="button"
               onClick={cancel}
@@ -304,64 +345,122 @@ function App() {
             >
               ▶ Run
             </button>
+          ))}
+          {activeTab === "dev" && (
+            <>
+              <button
+                type="button"
+                onClick={save}
+                disabled={running}
+                className="rounded-md bg-neutral-100 px-3 py-1 text-xs font-medium text-neutral-900 hover:bg-white disabled:opacity-50"
+              >
+                Save
+              </button>
+              <button
+                type="button"
+                onClick={() => load(currentFlow)}
+                disabled={running}
+                className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-1 text-xs hover:border-neutral-500 disabled:opacity-50"
+              >
+                Load
+              </button>
+            </>
           )}
           <button
             type="button"
-            onClick={save}
-            disabled={running}
-            className="rounded-md bg-neutral-100 px-3 py-1 text-xs font-medium text-neutral-900 hover:bg-white disabled:opacity-50"
+            onClick={() => setSettingsOpen(true)}
+            title="Settings"
+            aria-label="Settings"
+            className="rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs text-neutral-300 hover:border-neutral-500 hover:text-neutral-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
           >
-            Save
-          </button>
-          <button
-            type="button"
-            onClick={() => load(currentFlow)}
-            disabled={running}
-            className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-1 text-xs hover:border-neutral-500 disabled:opacity-50"
-          >
-            Load
+            ⚙
           </button>
         </div>
       </header>
 
-      {error && (
+      {/* Tab nav */}
+      <nav
+        role="tablist"
+        aria-label="Console sections"
+        className="flex items-center gap-1 border-b border-neutral-800 px-4"
+      >
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            role="tab"
+            aria-selected={activeTab === t.id}
+            type="button"
+            onClick={() => setActiveTab(t.id)}
+            className={
+              "border-b-2 px-3 py-2 text-xs font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 " +
+              (activeTab === t.id
+                ? "border-emerald-500 text-neutral-100"
+                : "border-transparent text-neutral-400 hover:text-neutral-200")
+            }
+          >
+            {t.label}
+          </button>
+        ))}
+      </nav>
+
+      {error && activeTab === "dev" && (
         <div className="border-b border-red-900/50 bg-red-950/30 px-5 py-1.5 text-xs text-red-300">
           {error}
         </div>
       )}
 
-      <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <SettingsModal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        devMode={devMode}
+        onDevModeChange={setDevMode}
+      />
 
+      {/* Tab body */}
       <div className="flex min-h-0 flex-1">
-        <LeftRail
-          flows={flows}
-          currentFlow={currentFlow}
-          onSelect={(f) => load(f)}
-          onRefresh={refreshFlows}
-        />
-
-        <div className="flex min-w-0 flex-1 flex-col">
-          <NodePalette onAdd={handleAddFromPalette} />
-          <div className="min-h-0 flex-1">
-            <Canvas
-              nodes={nodes}
-              edges={edges}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
-              onConnect={onConnect}
-              onSelect={setSelectedId}
-              onAddNode={addNode}
-              onViewportChange={setViewport}
-              defaultViewport={viewport}
-            />
+        {activeTab === "chat" && (
+          <div className="flex flex-1 items-center justify-center text-neutral-500">
+            <div className="text-sm">Chat tab — coming online…</div>
           </div>
-        </div>
+        )}
 
-        <NodeInspector
-          node={selectedNode}
-          onChange={updateNodeData}
-          onDelete={deleteNode}
-        />
+        {activeTab === "memory" && (
+          <div className="flex flex-1 items-center justify-center text-neutral-500">
+            <div className="text-sm">Memory tab — coming online…</div>
+          </div>
+        )}
+
+        {activeTab === "dev" && devMode && (
+          <>
+            <LeftRail
+              flows={flows}
+              currentFlow={currentFlow}
+              onSelect={(f) => load(f)}
+              onRefresh={refreshFlows}
+            />
+            <div className="flex min-w-0 flex-1 flex-col">
+              <NodePalette onAdd={handleAddFromPalette} />
+              <div className="min-h-0 flex-1">
+                <Canvas
+                  nodes={nodes}
+                  edges={edges}
+                  onNodesChange={onNodesChange}
+                  onEdgesChange={onEdgesChange}
+                  onConnect={onConnect}
+                  onSelect={setSelectedId}
+                  onAddNode={addNode}
+                  onViewportChange={setViewport}
+                  defaultViewport={viewport}
+                />
+              </div>
+            </div>
+            <NodeInspector
+              node={selectedNode}
+              onChange={updateNodeData}
+              onDelete={deleteNode}
+            />
+          </>
+        )}
       </div>
     </div>
   );

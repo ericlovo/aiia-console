@@ -11,6 +11,9 @@ import { invoke } from "@tauri-apps/api/core";
 type Props = {
   open: boolean;
   onClose: () => void;
+  // Wired in a later commit when the developer-toggle UI lands.
+  devMode?: boolean;
+  onDevModeChange?: (next: boolean) => void;
 };
 
 type ProviderRow = {
@@ -26,7 +29,7 @@ const PROVIDERS: ProviderRow[] = [
   { id: "google", label: "Google (Gemini)" },
 ];
 
-export function SettingsModal({ open, onClose }: Props) {
+export function SettingsModal({ open, onClose, devMode: _devMode, onDevModeChange: _onDevModeChange }: Props) {
   const [present, setPresent] = useState<Record<string, boolean>>({});
   const [inputs, setInputs] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<Record<string, string>>({});
