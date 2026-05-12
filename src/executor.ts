@@ -21,6 +21,7 @@ import type {
   VaultWriteNodeData,
   RunStatus,
 } from "./types";
+import { getProviderModelId } from "./types";
 
 export type GatewayInfo = {
   base_url: string;
@@ -124,7 +125,14 @@ async function runAgent(
   onToken: (tok: string) => void,
 ): Promise<string> {
   const data = node.data as AgentNodeData;
-  const model = data.model || gw.model_default || "anthropic/claude-opus-4-7";
+  // Strip the provider namespace for the gateway call — the OpenClaw
+  // gateway expects the bare model id (it routes by provider on its end).
+  // This temporary shim is replaced in the next commit when the executor
+  // dispatches through the provider registry directly.
+  const fullId = getProviderModelId(data);
+  const model =
+    fullId.split(":").slice(1).join(":") || fullId || gw.model_default ||
+    "claude-opus-4-7";
   const userParts: string[] = [];
   if (data.prompt) userParts.push(data.prompt);
   if (inputs.length > 0) {
@@ -290,7 +298,7 @@ function renderSessionMarkdown(meta: SessionMeta): string {
     lines.push(`### ${label} (\`${n.id}\`, \`${n.type}\`)`);
     if (n.type === "agent") {
       const a = n.data as AgentNodeData;
-      lines.push(`*model:* ${a.model}`);
+      lines.push(`*model:* ${getProviderModelId(a)}`);
       if (a.prompt) {
         lines.push("");
         lines.push("**Prompt:**");

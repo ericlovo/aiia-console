@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import type { AppNode, NodeKind } from "../types";
-import { BUILTIN_MODELS } from "../types";
+import { BUILTIN_MODELS, getProviderModelId } from "../types";
 
 type Props = {
   node: AppNode | null;
@@ -24,7 +24,8 @@ export function NodeInspector({ node, onChange, onDelete }: Props) {
   }
 
   const kind = node.type as NodeKind;
-  const [models, setModels] = useState<string[]>(BUILTIN_MODELS);
+  type ModelOption = { providerModelId: string; label: string };
+  const [models, setModels] = useState<ModelOption[]>(BUILTIN_MODELS);
 
   useEffect(() => {
     let cancelled = false;
@@ -32,8 +33,18 @@ export function NodeInspector({ node, onChange, onDelete }: Props) {
       try {
         const local = await invoke<string[]>("ollama_models");
         if (cancelled) return;
-        const localPrefixed = local.map((m) => `ollama-local/${m}`);
-        setModels(Array.from(new Set([...BUILTIN_MODELS, ...localPrefixed])));
+        const localOptions: ModelOption[] = local.map((m) => ({
+          providerModelId: `ollama:${m}`,
+          label: `Ollama / ${m}`,
+        }));
+        // Dedupe by providerModelId, local first so it wins.
+        const seen = new Set<string>();
+        const merged = [...localOptions, ...BUILTIN_MODELS].filter((o) => {
+          if (seen.has(o.providerModelId)) return false;
+          seen.add(o.providerModelId);
+          return true;
+        });
+        setModels(merged);
       } catch {
         // Ollama unreachable; stick with built-ins.
       }
@@ -69,18 +80,24 @@ export function NodeInspector({ node, onChange, onDelete }: Props) {
           <>
             <Field label="Model">
               <select
-                value={(node.data as { model: string }).model}
-                onChange={(e) => onChange(node.id, { model: e.target.value })}
+                value={getProviderModelId(node.data as { providerModelId?: string; model?: string })}
+                onChange={(e) =>
+                  onChange(node.id, {
+                    providerModelId: e.target.value,
+                    // Clear the legacy field so the new value sticks on save.
+                    model: undefined,
+                  })
+                }
                 className="w-full rounded border border-neutral-800 bg-neutral-900 px-2 py-1 text-neutral-100 focus:border-neutral-600 focus:outline-none"
               >
-                {models.map((m: string) => (
-                  <option key={m} value={m}>
-                    {m}
+                {models.map((m) => (
+                  <option key={m.providerModelId} value={m.providerModelId}>
+                    {m.label}
                   </option>
                 ))}
               </select>
               <p className="mt-1 text-[10px] text-neutral-600">
-                Built-in models + your local Ollama. Routed via the OpenClaw gateway.
+                Built-in models + your local Ollama.
               </p>
             </Field>
             <Field label="Prompt">

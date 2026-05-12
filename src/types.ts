@@ -6,7 +6,19 @@ import type { Node } from "@xyflow/react";
 export type AgentNodeData = {
   label: string;
   prompt: string;
-  model: string;
+  /**
+   * Canonical model id in the form `<provider>:<model>`, e.g.
+   * `ollama:qwen3:14b` or `anthropic:claude-opus-4-7`. Ollama model tags
+   * contain colons themselves, so consumers must split on the FIRST colon.
+   */
+  providerModelId: string;
+  /**
+   * Legacy field. Older saved flows stored a plain string in `model`; on
+   * load it is migrated lazily into `providerModelId` (treated as
+   * `ollama:<model>`) but kept around so the .flow.json on disk is not
+   * rewritten until the user saves again.
+   */
+  model?: string;
   tools: string[];
   // Streaming-bridge runtime fields. Optional so older flows still load.
   _output?: string;
@@ -60,7 +72,7 @@ export function defaultDataFor(kind: NodeKind): FlowNodeData {
       return {
         label: "Agent",
         prompt: "",
-        model: "anthropic/claude-opus-4-7",
+        providerModelId: "anthropic:claude-opus-4-7",
         tools: [],
       };
     case "vaultRead":
@@ -81,12 +93,34 @@ export function stripRuntime<T extends FlowNodeData>(d: T): T {
   return rest as T;
 }
 
-// Built-in / known model registry. Augmented at runtime with Ollama models
-// discovered via gateway+ollama_models Tauri command.
-export const BUILTIN_MODELS: string[] = [
-  "anthropic/claude-opus-4-7",
-  "anthropic/claude-sonnet-4-5",
-  "anthropic/claude-haiku-4-5",
-  "google/gemini-2.5-pro",
-  "google/gemini-2.5-flash",
+/**
+ * Fallback model list used when the provider registry is unreachable
+ * (e.g. listAllModels() fails mid-init). Entries are canonical
+ * `provider:model` ids.
+ */
+export const BUILTIN_MODELS: { providerModelId: string; label: string }[] = [
+  { providerModelId: "anthropic:claude-opus-4-7", label: "Anthropic / Claude Opus 4.7" },
+  { providerModelId: "anthropic:claude-sonnet-4-7", label: "Anthropic / Claude Sonnet 4.7" },
+  { providerModelId: "anthropic:claude-haiku-4-7", label: "Anthropic / Claude Haiku 4.7" },
+  { providerModelId: "google:gemini-2.5-pro", label: "Google / Gemini 2.5 Pro" },
+  { providerModelId: "google:gemini-2.5-flash", label: "Google / Gemini 2.5 Flash" },
 ];
+
+/**
+ * Read the canonical provider:model id off an agent node, migrating from
+ * the legacy plain-string `model` field on the fly (treated as ollama).
+ * Returns an empty string only when both fields are missing.
+ */
+export function getProviderModelId(
+  d: { providerModelId?: string; model?: string },
+): string {
+  if (d.providerModelId) return d.providerModelId;
+  if (d.model) {
+    // Legacy: treat as ollama unless it already looks namespaced.
+    if (d.model.includes(":") && !d.model.startsWith("ollama:")) {
+      return d.model;
+    }
+    return d.model.startsWith("ollama:") ? d.model : `ollama:${d.model}`;
+  }
+  return "";
+}

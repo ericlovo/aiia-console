@@ -1,5 +1,6 @@
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import type { AgentNode as AgentNodeType } from "../types";
+import { getProviderModelId } from "../types";
 
 const statusColor = (s?: string) => {
   switch (s) {
@@ -30,7 +31,7 @@ export function AgentNode({ data, selected }: NodeProps<AgentNodeType>) {
       <div className="px-3 py-2 text-xs">
         <div className="font-medium text-neutral-100">{data.label || "Agent"}</div>
         <div className="mt-1 text-[10px] text-neutral-400">model</div>
-        <div className="text-neutral-300 font-mono text-[11px]">{data.model}</div>
+        <div className="text-neutral-300 font-mono text-[11px]">{getProviderModelId(data) || "—"}</div>
         {data.prompt && (
           <>
             <div className="mt-1 text-[10px] text-neutral-400">prompt</div>
