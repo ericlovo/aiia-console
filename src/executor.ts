@@ -1,9 +1,10 @@
 // Flow executor for the AIIA Console.
 //
 // Walks a graph of AppNodes left-to-right and executes each node. Agent nodes
-// stream tokens from the local OpenClaw gateway's OpenAI-compatible endpoint;
-// Vault nodes call into Rust commands. Each node's output is piped as context
-// to its downstream neighbors.
+// stream tokens from whichever provider is configured on the node (Ollama,
+// Anthropic, OpenAI, Moonshot, DeepSeek, Google); Vault nodes call into Rust
+// commands. Each node's output is piped as context to its downstream
+// neighbors.
 //
 // Scope (v0):
 //   - Linear / DAG topology, single output channel per node
@@ -22,6 +23,7 @@ import type {
   RunStatus,
 } from "./types";
 import { getProviderModelId } from "./types";
+import { getProvider, parseProviderModelId } from "./providers";
 
 export type GatewayInfo = {
   base_url: string;
@@ -120,19 +122,21 @@ async function runVaultWrite(
 async function runAgent(
   node: AppNode,
   inputs: string[],
-  gw: GatewayInfo,
+  _gw: GatewayInfo,
   signal: AbortSignal | undefined,
   onToken: (tok: string) => void,
 ): Promise<string> {
   const data = node.data as AgentNodeData;
-  // Strip the provider namespace for the gateway call — the OpenClaw
-  // gateway expects the bare model id (it routes by provider on its end).
-  // This temporary shim is replaced in the next commit when the executor
-  // dispatches through the provider registry directly.
   const fullId = getProviderModelId(data);
-  const model =
-    fullId.split(":").slice(1).join(":") || fullId || gw.model_default ||
-    "claude-opus-4-7";
+  if (!fullId) {
+    throw new Error(`Agent "${data.label}": no model configured`);
+  }
+  const { provider: providerId, model } = parseProviderModelId(fullId);
+  if (!model) {
+    throw new Error(`Agent "${data.label}": invalid model id "${fullId}"`);
+  }
+  const provider = getProvider(providerId);
+
   const userParts: string[] = [];
   if (data.prompt) userParts.push(data.prompt);
   if (inputs.length > 0) {
@@ -142,61 +146,17 @@ async function runAgent(
   }
   const userMessage = userParts.join("\n\n");
 
-  const headers: Record<string, string> = {
-    "content-type": "application/json",
-    accept: "text/event-stream",
-  };
-  if (gw.token) headers["authorization"] = `Bearer ${gw.token}`;
-
-  const body = JSON.stringify({
-    model,
-    stream: true,
-    messages: [{ role: "user", content: userMessage }],
-  });
-
-  const resp = await fetch(`${gw.base_url}/v1/chat/completions`, {
-    method: "POST",
-    headers,
-    body,
-    signal,
-  });
-  if (!resp.ok || !resp.body) {
-    const text = await resp.text().catch(() => "");
-    throw new Error(`gateway HTTP ${resp.status}: ${text.slice(0, 200)}`);
-  }
-
-  const reader = resp.body.getReader();
-  const decoder = new TextDecoder();
-  let buffered = "";
   let collected = "";
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffered += decoder.decode(value, { stream: true });
-    let nl: number;
-    // SSE events end at "\n\n"; lines start with "data: "
-    while ((nl = buffered.indexOf("\n\n")) !== -1) {
-      const event = buffered.slice(0, nl);
-      buffered = buffered.slice(nl + 2);
-      for (const line of event.split("\n")) {
-        if (!line.startsWith("data: ")) continue;
-        const payload = line.slice(6).trim();
-        if (payload === "[DONE]") return collected;
-        try {
-          const parsed = JSON.parse(payload);
-          const delta: string | undefined =
-            parsed?.choices?.[0]?.delta?.content ??
-            parsed?.choices?.[0]?.message?.content;
-          if (delta) {
-            collected += delta;
-            onToken(delta);
-          }
-        } catch {
-          // Some endpoints emit non-JSON keepalive lines; skip them.
-        }
-      }
+  for await (const chunk of provider.stream({
+    model,
+    messages: [{ role: "user", content: userMessage }],
+    signal,
+  })) {
+    if (chunk.delta) {
+      collected += chunk.delta;
+      onToken(chunk.delta);
     }
+    if (chunk.done) break;
   }
   return collected;
 }
@@ -213,7 +173,15 @@ export async function runFlow(
   const outputs: Record<string, string> = {};
   const entries = findEntryNodes(nodes, edges);
 
-  const gw = await invoke<GatewayInfo>("gateway_config");
+  // We still resolve gateway config so vault nodes and any future
+  // gateway-routed providers can use it, but errors are non-fatal: agent
+  // nodes route through the provider registry directly.
+  let gw: GatewayInfo;
+  try {
+    gw = await invoke<GatewayInfo>("gateway_config");
+  } catch {
+    gw = { base_url: "", auth_mode: "none", token: null, model_default: null };
+  }
 
   for (const id of order) {
     if (opts.signal?.aborted) {
