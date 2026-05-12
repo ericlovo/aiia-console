@@ -58,10 +58,17 @@ function App() {
   return (
     <div className="flex h-screen flex-col bg-neutral-950 text-neutral-100">
       {/* Top bar */}
-      <header className="flex items-center justify-between border-b border-neutral-800 px-5 py-2.5">
-        <div className="flex items-center gap-3">
-          <span className="text-base font-semibold tracking-tight">
-            <span aria-hidden className="mr-1.5 text-neutral-400">⌬</span>
+      <header className="flex items-center justify-between border-b border-neutral-800 bg-neutral-950 px-4 py-2">
+        <div className="flex items-center gap-2">
+          <span
+            aria-hidden
+            className="select-none text-neutral-600"
+            title="AIIA Console"
+          >
+            ≡
+          </span>
+          <span className="text-base font-semibold tracking-tight text-neutral-100">
+            <span aria-hidden className="mr-1.5 text-emerald-400">⌬</span>
             AIIA Console
           </span>
         </div>
@@ -71,7 +78,7 @@ function App() {
             onClick={() => setSettingsOpen(true)}
             title="Settings"
             aria-label="Settings"
-            className="rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs text-neutral-300 hover:border-neutral-500 hover:text-neutral-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+            className="flex h-7 w-7 items-center justify-center rounded-md border border-neutral-700 bg-neutral-900 text-sm text-neutral-300 hover:border-neutral-500 hover:text-neutral-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
           >
             ⚙
           </button>
