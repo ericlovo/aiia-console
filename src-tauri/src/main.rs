@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    aiia_app_lib::run()
+    aiia_console_lib::run()
 }
