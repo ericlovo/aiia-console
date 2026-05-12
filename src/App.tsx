@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   applyEdgeChanges,
   applyNodeChanges,
@@ -14,7 +14,8 @@ import { LeftRail } from "./components/LeftRail";
 import { NodeInspector } from "./components/NodeInspector";
 import { NodePalette } from "./components/NodePalette";
 import type { AppNode, FlowNodeData, NodeKind } from "./types";
-import { defaultDataFor } from "./types";
+import { defaultDataFor, stripRuntime } from "./types";
+import { runFlow, writeSession, type NodeUpdate } from "./executor";
 import "./App.css";
 
 const DEFAULT_FLOW = "untitled.flow.json";
@@ -41,6 +42,12 @@ function App() {
   const [currentFlow, setCurrentFlow] = useState<string>(DEFAULT_FLOW);
   const [status, setStatus] = useState<string>("ready");
   const [error, setError] = useState<string | null>(null);
+  const [running, setRunning] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
+
+  // Ref-mirror so the executor's onUpdate callback can see latest nodes.
+  const nodesRef = useRef<AppNode[]>([]);
+  useEffect(() => { nodesRef.current = nodes; }, [nodes]);
 
   const selectedNode = useMemo(
     () => nodes.find((n) => n.id === selectedId) ?? null,
@@ -128,9 +135,14 @@ function App() {
   const save = useCallback(async () => {
     setError(null);
     setStatus("saving…");
+    // Strip runtime fields before persisting.
+    const persistedNodes = nodes.map((n) => ({
+      ...n,
+      data: stripRuntime(n.data) as typeof n.data,
+    })) as AppNode[];
     const payload: FlowFile = {
       version: 1,
-      nodes,
+      nodes: persistedNodes,
       edges,
       viewport,
     };
@@ -175,6 +187,84 @@ function App() {
     [addNode],
   );
 
+  // ---- Run / Cancel ----
+  const applyUpdate = useCallback((u: NodeUpdate) => {
+    setNodes((nds) =>
+      nds.map((n) => {
+        if (n.id !== u.id) return n;
+        const data = { ...n.data } as FlowNodeData & {
+          _output?: string;
+          _status?: typeof u.status;
+          _error?: string;
+        };
+        if (u.status) data._status = u.status;
+        if (u.error) data._error = u.error;
+        if (u.output !== undefined) data._output = u.output;
+        if (u.appendToken !== undefined) {
+          data._output = (data._output ?? "") + u.appendToken;
+        }
+        return { ...n, data } as AppNode;
+      }),
+    );
+  }, []);
+
+  const run = useCallback(async () => {
+    if (running) return;
+    setError(null);
+    if (nodes.length === 0) { setError("nothing to run — add some nodes first"); return; }
+    // Reset runtime state.
+    setNodes((nds) =>
+      nds.map((n) => ({
+        ...n,
+        data: {
+          ...stripRuntime(n.data),
+          _status: "idle",
+          _output: "",
+          _error: undefined,
+        } as FlowNodeData,
+      })) as AppNode[],
+    );
+    setRunning(true);
+    setStatus("running…");
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const startedAt = new Date().toISOString();
+    try {
+      const result = await runFlow(nodes, edges, {
+        onUpdate: applyUpdate,
+        signal: controller.signal,
+      });
+      const endedAt = new Date().toISOString();
+      setStatus(`run complete (${result.order.length} nodes)`);
+      try {
+        const sessionPath = await writeSession({
+          flowName: currentFlow,
+          startedAt,
+          endedAt,
+          outputs: result.outputs,
+          // Use the latest node state for prompts/labels in the session writeup.
+          nodes: nodesRef.current,
+        });
+        setStatus(`run complete · session → ${sessionPath.replace(/^.*AIIA\//, "")}`);
+      } catch (e) {
+        setStatus("run complete · session write failed");
+        setError(String(e));
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setStatus("run failed");
+      setError(msg);
+    } finally {
+      setRunning(false);
+      abortRef.current = null;
+    }
+  }, [running, nodes, edges, currentFlow, applyUpdate]);
+
+  const cancel = useCallback(() => {
+    abortRef.current?.abort();
+    setStatus("cancelling…");
+  }, []);
+
   return (
     <div className="flex h-screen flex-col bg-neutral-950 text-neutral-100">
       <header className="flex items-center justify-between border-b border-neutral-800 px-5 py-2.5">
@@ -187,17 +277,36 @@ function App() {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-[11px] text-neutral-500">{status}</span>
+          {running ? (
+            <button
+              type="button"
+              onClick={cancel}
+              className="rounded-md bg-rose-600 px-3 py-1 text-xs font-medium text-white hover:bg-rose-500"
+            >
+              Cancel
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={run}
+              className="rounded-md bg-emerald-500 px-3 py-1 text-xs font-medium text-neutral-950 hover:bg-emerald-400"
+            >
+              ▶ Run
+            </button>
+          )}
           <button
             type="button"
             onClick={save}
-            className="rounded-md bg-neutral-100 px-3 py-1 text-xs font-medium text-neutral-900 hover:bg-white"
+            disabled={running}
+            className="rounded-md bg-neutral-100 px-3 py-1 text-xs font-medium text-neutral-900 hover:bg-white disabled:opacity-50"
           >
             Save
           </button>
           <button
             type="button"
             onClick={() => load(currentFlow)}
-            className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-1 text-xs hover:border-neutral-500"
+            disabled={running}
+            className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-1 text-xs hover:border-neutral-500 disabled:opacity-50"
           >
             Load
           </button>
