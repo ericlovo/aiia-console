@@ -1,24 +1,39 @@
 // Shared types for the AIIA Console canvas.
 import type { Node } from "@xyflow/react";
 
+// ---- Saved data (persisted in .flow.json) ----
+
 export type AgentNodeData = {
   label: string;
   prompt: string;
   model: string;
-  tools: string[]; // free-form tool names for now
+  tools: string[];
+  // Streaming-bridge runtime fields. Optional so older flows still load.
+  _output?: string;
+  _status?: RunStatus;
+  _error?: string;
 };
 
 export type VaultReadNodeData = {
   label: string;
-  path: string; // e.g. "AIIA/Daily/" or "20-Workstreams/aiia-console.md"
-  query: string; // optional Dataview-ish query (placeholder)
+  path: string;
+  query: string;
+  _output?: string;
+  _status?: RunStatus;
+  _error?: string;
 };
 
 export type VaultWriteNodeData = {
   label: string;
   path: string;
-  section: string; // markdown heading to write under
+  section: string;
+  mode?: "overwrite" | "append" | "section";
+  _output?: string;
+  _status?: RunStatus;
+  _error?: string;
 };
+
+export type RunStatus = "idle" | "running" | "done" | "error";
 
 export type FlowNodeData =
   | AgentNodeData
@@ -45,22 +60,33 @@ export function defaultDataFor(kind: NodeKind): FlowNodeData {
       return {
         label: "Agent",
         prompt: "",
-        model: "claude-opus-4-7",
+        model: "anthropic/claude-opus-4-7",
         tools: [],
       };
     case "vaultRead":
       return { label: "Vault Read", path: "", query: "" };
     case "vaultWrite":
-      return { label: "Vault Write", path: "", section: "" };
+      return { label: "Vault Write", path: "", section: "", mode: "section" };
   }
 }
 
-// Placeholder model options. Real model resolution happens in the streaming
-// bridge story (P1).
-export const MODEL_OPTIONS = [
-  "claude-opus-4-7",
-  "claude-sonnet-4-5",
-  "claude-haiku-4-5",
-  "ollama/llama3.1",
-  "ollama/qwen2.5",
+// Strip runtime-only fields before persistence so .flow.json stays clean.
+export function stripRuntime<T extends FlowNodeData>(d: T): T {
+  const { _output, _status, _error, ...rest } = d as T & {
+    _output?: unknown;
+    _status?: unknown;
+    _error?: unknown;
+  };
+  void _output; void _status; void _error;
+  return rest as T;
+}
+
+// Built-in / known model registry. Augmented at runtime with Ollama models
+// discovered via gateway+ollama_models Tauri command.
+export const BUILTIN_MODELS: string[] = [
+  "anthropic/claude-opus-4-7",
+  "anthropic/claude-sonnet-4-5",
+  "anthropic/claude-haiku-4-5",
+  "google/gemini-2.5-pro",
+  "google/gemini-2.5-flash",
 ];
