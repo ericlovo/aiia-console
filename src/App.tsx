@@ -15,6 +15,7 @@ import { NodeInspector } from "./components/NodeInspector";
 import { NodePalette } from "./components/NodePalette";
 import { SettingsModal } from "./components/SettingsModal";
 import { ChatTab } from "./components/ChatTab";
+import { MemoryTab } from "./components/MemoryTab";
 import type { AppNode, FlowNodeData, NodeKind } from "./types";
 import { defaultDataFor, stripRuntime } from "./types";
 import { runFlow, writeSession, type NodeUpdate } from "./executor";
@@ -421,11 +422,7 @@ function App() {
       <div className="flex min-h-0 flex-1">
         {activeTab === "chat" && <ChatTab />}
 
-        {activeTab === "memory" && (
-          <div className="flex flex-1 items-center justify-center text-neutral-500">
-            <div className="text-sm">Memory tab — coming online…</div>
-          </div>
-        )}
+        {activeTab === "memory" && <MemoryTab />}
 
         {activeTab === "dev" && devMode && (
           <>
