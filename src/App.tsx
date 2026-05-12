@@ -13,6 +13,7 @@ import { Canvas, connectEdge } from "./components/Canvas";
 import { LeftRail } from "./components/LeftRail";
 import { NodeInspector } from "./components/NodeInspector";
 import { NodePalette } from "./components/NodePalette";
+import { SettingsModal } from "./components/SettingsModal";
 import type { AppNode, FlowNodeData, NodeKind } from "./types";
 import { defaultDataFor, stripRuntime } from "./types";
 import { runFlow, writeSession, type NodeUpdate } from "./executor";
@@ -43,6 +44,7 @@ function App() {
   const [status, setStatus] = useState<string>("ready");
   const [error, setError] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   // Ref-mirror so the executor's onUpdate callback can see latest nodes.
@@ -277,6 +279,15 @@ function App() {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-[11px] text-neutral-500">{status}</span>
+          <button
+            type="button"
+            onClick={() => setSettingsOpen(true)}
+            title="API keys"
+            aria-label="Settings"
+            className="rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs text-neutral-300 hover:border-neutral-500 hover:text-neutral-100"
+          >
+            ⚙
+          </button>
           {running ? (
             <button
               type="button"
@@ -318,6 +329,8 @@ function App() {
           {error}
         </div>
       )}
+
+      <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
 
       <div className="flex min-h-0 flex-1">
         <LeftRail
