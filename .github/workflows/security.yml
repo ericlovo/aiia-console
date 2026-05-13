@@ -1,0 +1,58 @@
+name: security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Weekly Monday 16:00 UTC (09:00 PT) — pairs with Dependabot's schedule.
+    - cron: "0 16 * * 1"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  npm-audit:
+    name: npm audit (frontend deps)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Run npm audit (high+)
+        # --audit-level=high blocks on CVEs of high or critical severity.
+        # Moderate and low findings still appear in the log via the
+        # subsequent advisory step.
+        run: npm audit --audit-level=high
+
+      - name: Run npm audit (advisory, full report)
+        run: npm audit
+        continue-on-error: true
+
+  cargo-audit:
+    name: cargo audit (rust deps)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install cargo-audit
+        run: cargo install --locked cargo-audit
+
+      - name: Run cargo audit
+        # cargo audit reports both vulnerabilities and "warnings" (yanked
+        # crates, unmaintained crates). --deny warnings would block on
+        # unmaintained; for now just block on vulnerabilities.
+        working-directory: src-tauri
+        run: cargo audit
