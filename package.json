@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "test": "echo 'no tests yet — see T1 in plans (vitest + RTL)' && exit 0"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",
