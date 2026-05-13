@@ -108,12 +108,12 @@ function CanvasInner({
         colorMode="dark"
       >
         <Background gap={20} size={1} color="#262626" />
-        <Controls className="!border-neutral-800 !bg-neutral-900" />
+        <Controls className="!border-carbon-4 !bg-carbon-1" />
         <MiniMap
           pannable
           zoomable
           maskColor="rgba(10,10,10,0.6)"
-          className="!border-neutral-800 !bg-neutral-900"
+          className="!border-carbon-4 !bg-carbon-1"
           nodeColor={(n) => {
             switch (n.type) {
               case "agent":

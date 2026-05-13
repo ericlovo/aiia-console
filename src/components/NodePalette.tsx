@@ -12,8 +12,8 @@ export function NodePalette({ onAdd }: Props) {
   }
 
   return (
-    <div className="flex items-center gap-2 border-b border-neutral-800 bg-neutral-950 px-3 py-2">
-      <span className="mr-1 text-[10px] uppercase tracking-wider text-neutral-500">
+    <div className="flex items-center gap-2 border-b border-carbon-4 bg-void px-3 py-2">
+      <span className="mr-1 text-[10px] uppercase tracking-wider text-text-5">
         Palette
       </span>
       {NODE_KINDS.map(({ kind, label, color }) => (
@@ -24,7 +24,7 @@ export function NodePalette({ onAdd }: Props) {
           onDragStart={(e) => onDragStart(e, kind)}
           onClick={() => onAdd(kind)}
           className={
-            "flex items-center gap-1.5 rounded-md border border-neutral-700 bg-neutral-900 px-2.5 py-1 text-xs text-neutral-100 hover:border-neutral-500 hover:bg-neutral-800"
+            "flex items-center gap-1.5 rounded-md border border-carbon-6 bg-carbon-1 px-2.5 py-1 text-xs text-text-1 hover:border-carbon-7 hover:bg-carbon-3"
           }
           title={`Drag onto canvas or click to add ${label}`}
         >
@@ -32,7 +32,7 @@ export function NodePalette({ onAdd }: Props) {
           {label}
         </button>
       ))}
-      <span className="ml-2 text-[10px] text-neutral-600">
+      <span className="ml-2 text-[10px] text-text-6">
         drag onto canvas or click to add
       </span>
     </div>

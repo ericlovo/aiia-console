@@ -259,19 +259,19 @@ export function DevTab() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* Canvas-only toolbar */}
-      <div className="flex items-center justify-between border-b border-neutral-800 bg-neutral-950 px-4 py-1.5">
+      <div className="flex items-center justify-between border-b border-carbon-4 bg-void px-4 py-1.5">
         <div className="flex items-center gap-2">
-          <span className="rounded bg-neutral-900 px-2 py-0.5 font-mono text-[11px] text-neutral-400">
+          <span className="rounded bg-carbon-1 px-2 py-0.5 font-mono text-[11px] text-text-4">
             {baseName(currentFlow)}
           </span>
-          <span className="text-[11px] text-neutral-500">{status}</span>
+          <span className="text-[11px] text-text-5">{status}</span>
         </div>
         <div className="flex items-center gap-2">
           {running ? (
             <button
               type="button"
               onClick={cancel}
-              className="rounded-md bg-rose-600 px-3 py-1 text-xs font-medium text-white hover:bg-rose-500"
+              className="rounded-md bg-status-failing px-3 py-1 text-xs font-medium text-white hover:bg-status-failing"
             >
               Cancel
             </button>
@@ -279,7 +279,7 @@ export function DevTab() {
             <button
               type="button"
               onClick={run}
-              className="rounded-md bg-emerald-500 px-3 py-1 text-xs font-medium text-neutral-950 hover:bg-emerald-400"
+              className="rounded-md bg-amethyst-500 px-3 py-1 text-xs font-medium text-void hover:bg-amethyst-400"
             >
               ▶ Run
             </button>
@@ -288,7 +288,7 @@ export function DevTab() {
             type="button"
             onClick={save}
             disabled={running}
-            className="rounded-md bg-neutral-100 px-3 py-1 text-xs font-medium text-neutral-900 hover:bg-white disabled:opacity-50"
+            className="rounded-md bg-text-1 px-3 py-1 text-xs font-medium text-void hover:bg-white disabled:opacity-50"
           >
             Save
           </button>
@@ -296,7 +296,7 @@ export function DevTab() {
             type="button"
             onClick={() => load(currentFlow)}
             disabled={running}
-            className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-1 text-xs hover:border-neutral-500 disabled:opacity-50"
+            className="rounded-md border border-carbon-6 bg-carbon-1 px-3 py-1 text-xs hover:border-carbon-7 disabled:opacity-50"
           >
             Load
           </button>
@@ -304,7 +304,7 @@ export function DevTab() {
       </div>
 
       {error && (
-        <div className="border-b border-red-900/50 bg-red-950/30 px-5 py-1.5 text-xs text-red-300">
+        <div className="border-b border-status-failing/50 bg-status-failing/30 px-5 py-1.5 text-xs text-status-failing">
           {error}
         </div>
       )}

@@ -112,19 +112,19 @@ function CodeBlock({ inline, className, children }: CodeRendererProps) {
 
   if (inline || !match) {
     return (
-      <code className="rounded bg-neutral-800 px-1 py-0.5 font-mono text-[12px] text-neutral-200">
+      <code className="rounded bg-carbon-3 px-1 py-0.5 font-mono text-[12px] text-text-2">
         {children}
       </code>
     );
   }
   return (
-    <div className="my-2 overflow-hidden rounded-md border border-neutral-800">
-      <div className="flex items-center justify-between border-b border-neutral-800 bg-neutral-900 px-3 py-1 text-[10px] uppercase tracking-wider text-neutral-500">
+    <div className="my-2 overflow-hidden rounded-md border border-carbon-4">
+      <div className="flex items-center justify-between border-b border-carbon-4 bg-carbon-1 px-3 py-1 text-[10px] uppercase tracking-wider text-text-5">
         <span>{match[1]}</span>
         <button
           type="button"
           onClick={copy}
-          className="rounded border border-neutral-700 px-1.5 py-0.5 text-[10px] text-neutral-300 hover:border-neutral-500 hover:text-neutral-100"
+          className="rounded border border-carbon-6 px-1.5 py-0.5 text-[10px] text-text-3 hover:border-carbon-7 hover:text-text-1"
         >
           {copied ? "Copied" : "Copy"}
         </button>
@@ -411,12 +411,12 @@ export function ChatTab() {
     <div className="flex min-h-0 flex-1">
       {/* Sessions rail */}
       {railOpen ? (
-        <aside className="flex w-60 shrink-0 flex-col border-r border-neutral-800 bg-neutral-950">
+        <aside className="flex w-60 shrink-0 flex-col border-r border-carbon-4 bg-void">
           <div className="flex items-center justify-between px-3 py-2">
             <button
               type="button"
               onClick={startNewChat}
-              className="flex-1 rounded-md border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-left text-xs text-neutral-200 hover:border-neutral-500 hover:text-neutral-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+              className="flex-1 rounded-md border border-carbon-6 bg-carbon-1 px-3 py-1.5 text-left text-xs text-text-2 hover:border-carbon-7 hover:text-text-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-amethyst-500"
             >
               + New chat
             </button>
@@ -424,14 +424,14 @@ export function ChatTab() {
               type="button"
               onClick={() => setRailOpen(false)}
               aria-label="Collapse sessions"
-              className="ml-1 rounded p-1 text-neutral-500 hover:text-neutral-200"
+              className="ml-1 rounded p-1 text-text-5 hover:text-text-2"
             >
               ‹
             </button>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
             {sessions.length === 0 && (
-              <div className="px-2 py-3 text-[11px] text-neutral-600">
+              <div className="px-2 py-3 text-[11px] text-text-6">
                 No chats yet.
               </div>
             )}
@@ -463,7 +463,7 @@ export function ChatTab() {
           type="button"
           onClick={() => setRailOpen(true)}
           aria-label="Expand sessions"
-          className="flex w-6 shrink-0 items-center justify-center border-r border-neutral-800 bg-neutral-950 text-neutral-500 hover:text-neutral-200"
+          className="flex w-6 shrink-0 items-center justify-center border-r border-carbon-4 bg-void text-text-5 hover:text-text-2"
         >
           ›
         </button>
@@ -478,10 +478,10 @@ export function ChatTab() {
         >
           {isEmpty ? (
             <div className="mx-auto flex h-full max-w-2xl flex-col items-center justify-center px-6 text-center">
-              <div className="mb-3 text-2xl text-neutral-200">
+              <div className="mb-3 text-2xl text-text-2">
                 What would you like to try?
               </div>
-              <div className="mb-6 text-sm text-neutral-500">
+              <div className="mb-6 text-sm text-text-5">
                 Your conversation stays on this machine unless you pick a cloud model.
               </div>
               <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-3">
@@ -490,7 +490,7 @@ export function ChatTab() {
                     key={p}
                     type="button"
                     onClick={() => void send(p)}
-                    className="rounded-md border border-neutral-800 bg-neutral-900/50 px-3 py-2 text-left text-xs text-neutral-300 hover:border-neutral-600 hover:bg-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                    className="rounded-md border border-carbon-4 bg-carbon-1/50 px-3 py-2 text-left text-xs text-text-3 hover:border-carbon-7 hover:bg-carbon-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-amethyst-500"
                   >
                     {p}
                   </button>
@@ -511,28 +511,28 @@ export function ChatTab() {
         </div>
 
         {/* Composer */}
-        <div className="border-t border-neutral-800 bg-neutral-950 px-4 py-3">
+        <div className="border-t border-carbon-4 bg-void px-4 py-3">
           <div className="mx-auto max-w-3xl">
             {attachedFile && (
-              <div className="mb-2 inline-flex items-center gap-1 rounded bg-neutral-900 px-2 py-0.5 text-[11px] text-neutral-300">
+              <div className="mb-2 inline-flex items-center gap-1 rounded bg-carbon-1 px-2 py-0.5 text-[11px] text-text-3">
                 📎 {attachedFile}
                 <button
                   type="button"
                   onClick={() => setAttachedFile(null)}
-                  className="ml-1 text-neutral-500 hover:text-neutral-200"
+                  className="ml-1 text-text-5 hover:text-text-2"
                   aria-label="Remove attachment"
                 >
                   ×
                 </button>
               </div>
             )}
-            <div className="flex flex-col rounded-lg border border-neutral-800 bg-neutral-900/60 focus-within:border-neutral-600">
+            <div className="flex flex-col rounded-lg border border-carbon-4 bg-carbon-1/60 focus-within:border-carbon-7">
               <div className="flex items-start gap-2 px-3 pt-2">
                 <button
                   type="button"
                   onClick={onAttach}
                   aria-label="Attach file"
-                  className="mt-0.5 rounded p-1 text-neutral-400 hover:text-neutral-100"
+                  className="mt-0.5 rounded p-1 text-text-4 hover:text-text-1"
                 >
                   📎
                 </button>
@@ -543,18 +543,18 @@ export function ChatTab() {
                   onKeyDown={onComposerKey}
                   rows={1}
                   placeholder="Type a message…  ⌘/Ctrl + Enter to send"
-                  className="flex-1 resize-none bg-transparent py-1 text-sm text-neutral-100 placeholder:text-neutral-600 focus:outline-none"
+                  className="flex-1 resize-none bg-transparent py-1 text-sm text-text-1 placeholder:text-text-6 focus:outline-none"
                 />
               </div>
               <div className="flex items-center justify-between px-3 pb-2 pt-1">
-                <div className="text-[10px] text-neutral-600">
-                  {composerError && <span className="text-rose-400">{composerError}</span>}
+                <div className="text-[10px] text-text-6">
+                  {composerError && <span className="text-status-failing">{composerError}</span>}
                 </div>
                 <div className="flex items-center gap-2">
                   <select
                     value={model ?? ""}
                     onChange={(e) => setModel(e.target.value || null)}
-                    className="rounded border border-neutral-800 bg-neutral-950 px-2 py-1 text-[11px] text-neutral-300 focus:border-neutral-600 focus:outline-none"
+                    className="rounded border border-carbon-4 bg-void px-2 py-1 text-[11px] text-text-3 focus:border-carbon-7 focus:outline-none"
                     aria-label="Model"
                   >
                     {models.length === 0 && (
@@ -583,7 +583,7 @@ export function ChatTab() {
                     <button
                       type="button"
                       onClick={stop}
-                      className="rounded-md bg-rose-600 px-3 py-1 text-xs font-medium text-white hover:bg-rose-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
+                      className="rounded-md bg-status-failing px-3 py-1 text-xs font-medium text-white hover:bg-status-failing focus:outline-none focus-visible:ring-2 focus-visible:ring-status-failing"
                     >
                       Stop
                     </button>
@@ -592,7 +592,7 @@ export function ChatTab() {
                       type="button"
                       onClick={() => void send()}
                       disabled={!draft.trim() || !model}
-                      className="rounded-md bg-emerald-500 px-3 py-1 text-xs font-medium text-neutral-950 hover:bg-emerald-400 disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                      className="rounded-md bg-amethyst-500 px-3 py-1 text-xs font-medium text-void hover:bg-amethyst-400 disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-amethyst-400"
                     >
                       Send →
                     </button>
@@ -625,7 +625,7 @@ function SessionGroup({
   if (items.length === 0) return null;
   return (
     <div className="mb-3">
-      <div className="px-2 pb-1 pt-2 text-[10px] uppercase tracking-wider text-neutral-600">
+      <div className="px-2 pb-1 pt-2 text-[10px] uppercase tracking-wider text-text-6">
         {label}
       </div>
       <ul className="space-y-0.5">
@@ -637,8 +637,8 @@ function SessionGroup({
               className={
                 "flex-1 truncate rounded px-2 py-1 text-left text-xs " +
                 (s.id === activeId
-                  ? "bg-neutral-800 text-neutral-100"
-                  : "text-neutral-400 hover:bg-neutral-900 hover:text-neutral-200")
+                  ? "bg-carbon-3 text-text-1"
+                  : "text-text-4 hover:bg-carbon-1 hover:text-text-2")
               }
               title={s.title}
             >
@@ -649,7 +649,7 @@ function SessionGroup({
               type="button"
               onClick={() => onDelete(s.id)}
               aria-label="Delete chat"
-              className="ml-1 hidden rounded p-1 text-neutral-500 hover:text-rose-400 group-hover:block"
+              className="ml-1 hidden rounded p-1 text-text-5 hover:text-status-failing group-hover:block"
             >
               ×
             </button>
@@ -670,15 +670,15 @@ function MessageBubble({
   const isUser = message.role === "user";
   return (
     <div className={"mb-5 flex flex-col " + (isUser ? "items-end" : "items-start")}>
-      <div className="mb-1 text-[10px] uppercase tracking-wider text-neutral-600">
+      <div className="mb-1 text-[10px] uppercase tracking-wider text-text-6">
         {message.role}
       </div>
       <div
         className={
           "max-w-full rounded-lg px-4 py-2.5 text-sm leading-relaxed " +
           (isUser
-            ? "bg-emerald-500/15 text-neutral-100 ring-1 ring-emerald-500/30"
-            : "bg-neutral-900 text-neutral-100 ring-1 ring-neutral-800")
+            ? "bg-amethyst-500/15 text-text-1 ring-1 ring-amethyst-500/30"
+            : "bg-carbon-1 text-text-1 ring-1 ring-carbon-4")
         }
       >
         {message.role === "assistant" ? (
@@ -693,7 +693,7 @@ function MessageBubble({
             </ReactMarkdown>
             {streaming && (
               <span
-                className="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-emerald-400 align-baseline"
+                className="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-amethyst-400 align-baseline"
                 aria-hidden
               />
             )}

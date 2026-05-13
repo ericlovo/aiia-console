@@ -56,19 +56,19 @@ function App() {
   ];
 
   return (
-    <div className="flex h-screen flex-col bg-neutral-950 text-neutral-100">
+    <div className="flex h-screen flex-col bg-void text-text-1">
       {/* Top bar */}
-      <header className="flex items-center justify-between border-b border-neutral-800 bg-neutral-950 px-4 py-2">
+      <header className="flex items-center justify-between border-b border-carbon-4 bg-void px-4 py-2">
         <div className="flex items-center gap-2">
           <span
             aria-hidden
-            className="select-none text-neutral-600"
+            className="select-none text-text-6"
             title="AIIA Console"
           >
             ≡
           </span>
-          <span className="text-base font-semibold tracking-tight text-neutral-100">
-            <span aria-hidden className="mr-1.5 text-emerald-400">⌬</span>
+          <span className="text-base font-semibold tracking-tight text-text-1">
+            <span aria-hidden className="mr-1.5 text-amethyst-400">⌬</span>
             AIIA Console
           </span>
         </div>
@@ -78,7 +78,7 @@ function App() {
             onClick={() => setSettingsOpen(true)}
             title="Settings"
             aria-label="Settings"
-            className="flex h-7 w-7 items-center justify-center rounded-md border border-neutral-700 bg-neutral-900 text-sm text-neutral-300 hover:border-neutral-500 hover:text-neutral-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+            className="flex h-7 w-7 items-center justify-center rounded-md border border-carbon-6 bg-carbon-1 text-sm text-text-3 hover:border-carbon-7 hover:text-text-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-amethyst-500"
           >
             ⚙
           </button>
@@ -89,7 +89,7 @@ function App() {
       <nav
         role="tablist"
         aria-label="Console sections"
-        className="flex items-center gap-1 border-b border-neutral-800 px-4"
+        className="flex items-center gap-1 border-b border-carbon-4 px-4"
       >
         {tabs.map((t) => (
           <button
@@ -99,10 +99,10 @@ function App() {
             type="button"
             onClick={() => setActiveTab(t.id)}
             className={
-              "border-b-2 px-3 py-2 text-xs font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 " +
+              "border-b-2 px-3 py-2 text-xs font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amethyst-500 " +
               (activeTab === t.id
-                ? "border-emerald-500 text-neutral-100"
-                : "border-transparent text-neutral-400 hover:text-neutral-200")
+                ? "border-amethyst-500 text-text-1"
+                : "border-transparent text-text-4 hover:text-text-2")
             }
           >
             {t.label}

@@ -17,11 +17,11 @@ type Props = {
 export function NodeInspector({ node, onChange, onDelete }: Props) {
   if (!node) {
     return (
-      <aside className="flex h-full w-80 flex-col border-l border-neutral-800 bg-neutral-950">
-        <div className="border-b border-neutral-800 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-neutral-400">
+      <aside className="flex h-full w-80 flex-col border-l border-carbon-4 bg-void">
+        <div className="border-b border-carbon-4 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-text-4">
           Inspector
         </div>
-        <div className="flex flex-1 items-center justify-center px-4 text-center text-xs text-neutral-600">
+        <div className="flex flex-1 items-center justify-center px-4 text-center text-xs text-text-6">
           Select a node to inspect & edit.
         </div>
       </aside>
@@ -52,15 +52,15 @@ export function NodeInspector({ node, onChange, onDelete }: Props) {
   }, []);
 
   return (
-    <aside className="flex h-full w-80 flex-col border-l border-neutral-800 bg-neutral-950">
-      <div className="flex items-center justify-between border-b border-neutral-800 px-3 py-2">
-        <span className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
+    <aside className="flex h-full w-80 flex-col border-l border-carbon-4 bg-void">
+      <div className="flex items-center justify-between border-b border-carbon-4 px-3 py-2">
+        <span className="text-xs font-semibold uppercase tracking-wider text-text-4">
           {kindLabel(kind)}
         </span>
         <button
           type="button"
           onClick={() => onDelete(node.id)}
-          className="text-[10px] text-red-400 hover:text-red-300"
+          className="text-[10px] text-status-failing hover:text-status-failing"
         >
           Delete
         </button>
@@ -71,7 +71,7 @@ export function NodeInspector({ node, onChange, onDelete }: Props) {
           <input
             value={node.data.label ?? ""}
             onChange={(e) => onChange(node.id, { label: e.target.value })}
-            className="w-full rounded border border-neutral-800 bg-neutral-900 px-2 py-1 text-neutral-100 focus:border-neutral-600 focus:outline-none"
+            className="w-full rounded border border-carbon-4 bg-carbon-1 px-2 py-1 text-text-1 focus:border-carbon-7 focus:outline-none"
           />
         </Field>
 
@@ -89,11 +89,11 @@ export function NodeInspector({ node, onChange, onDelete }: Props) {
                     model: undefined,
                   })
                 }
-                className="w-full rounded border border-neutral-800 bg-neutral-900 px-2 py-1 text-neutral-100 focus:border-neutral-600 focus:outline-none"
+                className="w-full rounded border border-carbon-4 bg-carbon-1 px-2 py-1 text-text-1 focus:border-carbon-7 focus:outline-none"
               >
                 {renderGroupedModelOptions(models, providers, keysPresent)}
               </select>
-              <p className="mt-1 text-[10px] text-neutral-600">
+              <p className="mt-1 text-[10px] text-text-6">
                 Local + remote providers. Remote needs an API key (gear icon).
               </p>
             </Field>
@@ -103,7 +103,7 @@ export function NodeInspector({ node, onChange, onDelete }: Props) {
                 value={(node.data as { prompt: string }).prompt}
                 onChange={(e) => onChange(node.id, { prompt: e.target.value })}
                 placeholder="System / task prompt for this agent"
-                className="w-full resize-y rounded border border-neutral-800 bg-neutral-900 px-2 py-1 font-mono text-neutral-100 focus:border-neutral-600 focus:outline-none"
+                className="w-full resize-y rounded border border-carbon-4 bg-carbon-1 px-2 py-1 font-mono text-text-1 focus:border-carbon-7 focus:outline-none"
               />
             </Field>
             <Field label="Tools (comma-separated)">
@@ -118,7 +118,7 @@ export function NodeInspector({ node, onChange, onDelete }: Props) {
                   })
                 }
                 placeholder="vault.read, vault.write, web.search"
-                className="w-full rounded border border-neutral-800 bg-neutral-900 px-2 py-1 text-neutral-100 focus:border-neutral-600 focus:outline-none"
+                className="w-full rounded border border-carbon-4 bg-carbon-1 px-2 py-1 text-text-1 focus:border-carbon-7 focus:outline-none"
               />
             </Field>
           </>
@@ -131,7 +131,7 @@ export function NodeInspector({ node, onChange, onDelete }: Props) {
                 value={(node.data as { path: string }).path}
                 onChange={(e) => onChange(node.id, { path: e.target.value })}
                 placeholder="20-Workstreams/aiia-console.md"
-                className="w-full rounded border border-neutral-800 bg-neutral-900 px-2 py-1 text-neutral-100 focus:border-neutral-600 focus:outline-none"
+                className="w-full rounded border border-carbon-4 bg-carbon-1 px-2 py-1 text-text-1 focus:border-carbon-7 focus:outline-none"
               />
             </Field>
             <Field label="Query (optional)">
@@ -140,7 +140,7 @@ export function NodeInspector({ node, onChange, onDelete }: Props) {
                 value={(node.data as { query: string }).query}
                 onChange={(e) => onChange(node.id, { query: e.target.value })}
                 placeholder="dataview-ish filter, glob, or free text"
-                className="w-full resize-y rounded border border-neutral-800 bg-neutral-900 px-2 py-1 font-mono text-neutral-100 focus:border-neutral-600 focus:outline-none"
+                className="w-full resize-y rounded border border-carbon-4 bg-carbon-1 px-2 py-1 font-mono text-text-1 focus:border-carbon-7 focus:outline-none"
               />
             </Field>
           </>
@@ -153,7 +153,7 @@ export function NodeInspector({ node, onChange, onDelete }: Props) {
                 value={(node.data as { path: string }).path}
                 onChange={(e) => onChange(node.id, { path: e.target.value })}
                 placeholder="10-Daily/2026-05-12.md"
-                className="w-full rounded border border-neutral-800 bg-neutral-900 px-2 py-1 text-neutral-100 focus:border-neutral-600 focus:outline-none"
+                className="w-full rounded border border-carbon-4 bg-carbon-1 px-2 py-1 text-text-1 focus:border-carbon-7 focus:outline-none"
               />
             </Field>
             <Field label="Section heading">
@@ -161,14 +161,14 @@ export function NodeInspector({ node, onChange, onDelete }: Props) {
                 value={(node.data as { section: string }).section}
                 onChange={(e) => onChange(node.id, { section: e.target.value })}
                 placeholder="Notes"
-                className="w-full rounded border border-neutral-800 bg-neutral-900 px-2 py-1 text-neutral-100 focus:border-neutral-600 focus:outline-none"
+                className="w-full rounded border border-carbon-4 bg-carbon-1 px-2 py-1 text-text-1 focus:border-carbon-7 focus:outline-none"
               />
             </Field>
             <Field label="Mode">
               <select
                 value={(node.data as { mode?: string }).mode ?? "section"}
                 onChange={(e) => onChange(node.id, { mode: e.target.value })}
-                className="w-full rounded border border-neutral-800 bg-neutral-900 px-2 py-1 text-neutral-100 focus:border-neutral-600 focus:outline-none"
+                className="w-full rounded border border-carbon-4 bg-carbon-1 px-2 py-1 text-text-1 focus:border-carbon-7 focus:outline-none"
               >
                 <option value="section">section (replace/append heading)</option>
                 <option value="append">append (raw)</option>
@@ -179,7 +179,7 @@ export function NodeInspector({ node, onChange, onDelete }: Props) {
         )}
       </div>
 
-      <div className="border-t border-neutral-800 px-3 py-2 font-mono text-[10px] text-neutral-600">
+      <div className="border-t border-carbon-4 px-3 py-2 font-mono text-[10px] text-text-6">
         id: {node.id}
       </div>
     </aside>
@@ -246,7 +246,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-[10px] uppercase tracking-wider text-neutral-500">
+      <span className="mb-1 block text-[10px] uppercase tracking-wider text-text-5">
         {label}
       </span>
       {children}
