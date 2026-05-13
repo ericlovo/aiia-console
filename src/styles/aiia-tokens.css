@@ -1,0 +1,297 @@
+/* ───────────────────────────────────────────────────────────────────────────
+   AIIA Design System — Colors & Type
+   ───────────────────────────────────────────────────────────────────────────
+   Two coexisting surfaces:
+
+   1. BRAND  — mint, ink, cinnabar. Classical, considered, quiet. Used for
+               marketing, docs, white papers, the README cover. Inspired by
+               the Penguin Annotated edition of Marcus Aurelius' Meditations.
+
+   2. CONSOLE — void black, carbon panels, amethyst accent. Dense, terminal-
+               adjacent, status-coloured. Used for the dashboard product.
+
+   Both are part of the same brand. AIIA is a palindrome — same on both
+   sides of the mirror; same brand whether you're reading the docs or
+   running the loop.
+   ─────────────────────────────────────────────────────────────────────── */
+
+/* ── Web fonts ─────────────────────────────────────────────────────────── */
+/* SUBSTITUTION: Penguin Classics' display face is a custom transitional
+   serif (close to ITC Galliard / Adobe Caslon). Closest Google Fonts match
+   is Cormorant Garamond at SemiBold for the all-caps display, paired with
+   EB Garamond for body. JetBrains Mono for the console / code. Please
+   confirm and supply true cuts if you have them.
+
+   Fonts are loaded via <link rel="stylesheet"> in index.html (faster
+   preconnect + parallel fetch). The original CSS @import has been removed
+   here to satisfy Tailwind's "@import must precede all rules" lint. */
+
+:root {
+  /* ── BRAND palette ──────────────────────────────────────────────────── */
+  /* Mint surfaces — pulled from the book cover */
+  --mint-50:   #EAF5F1;
+  --mint-100:  #C9E7DC;
+  --mint-200:  #A6D8C6;
+  --mint-300:  #7FC7B0;   /* core background tone */
+  --mint-400:  #5BB69A;
+  --mint-500:  #3F9A82;
+  --mint-600:  #2E7867;
+
+  /* Ink — primary text on mint or paper */
+  --ink-900:   #14110D;   /* near-black, warm */
+  --ink-800:   #221E18;
+  --ink-700:   #3A332A;
+  --ink-600:   #564D3F;
+  --ink-500:   #807666;
+
+  /* Cinnabar — the red accent. Single use only (annotations, key word). */
+  --cinnabar-500: #C13B2A;
+  --cinnabar-600: #A12B1E;
+  --cinnabar-400: #D8543F;
+
+  /* Vellum — paper / off-white for inverted blocks */
+  --vellum-50:  #FBF7EC;
+  --vellum-100: #F4ECD8;
+  --vellum-200: #E8DEC2;
+
+  /* ── CONSOLE palette ───────────────────────────────────────────────── */
+  /* Void & carbon — the dashboard's structural greys */
+  --void:       #0A0A0A;   /* root background */
+  --carbon-1:   #111111;   /* card surface */
+  --carbon-2:   #141414;   /* input bg / border-bottom */
+  --carbon-3:   #181818;   /* major borders */
+  --carbon-4:   #1E1E1E;   /* card border */
+  --carbon-5:   #252525;   /* hover border */
+  --carbon-6:   #2A2A2A;   /* modal border */
+  --carbon-7:   #333333;   /* idle dot / scrollbar */
+
+  /* Text on dark */
+  --text-1:     #EDEDED;   /* primary white-ish */
+  --text-2:     #DDDDDD;   /* body */
+  --text-3:     #AAAAAA;   /* secondary */
+  --text-4:     #888888;   /* labels / meta */
+  --text-5:     #666666;   /* tertiary */
+  --text-6:     #555555;   /* placeholder */
+  --text-7:     #444444;   /* faint */
+
+  /* Amethyst — the console's brand accent. Purple. */
+  --amethyst-300: #C4B5FD;
+  --amethyst-400: #A78BFA;
+  --amethyst-500: #8B5CF6;
+  --amethyst-600: #7C3AED;
+  --amethyst-700: #6D28D9;
+  --amethyst-glass-10: rgba(139, 92, 246, 0.10);
+  --amethyst-glass-20: rgba(139, 92, 246, 0.20);
+  --amethyst-glass-40: rgba(139, 92, 246, 0.40);
+
+  /* ── Semantic state colours ────────────────────────────────────────── */
+  /* These map to memory categories AND to live status. One name does both. */
+  --status-healthy:   #22C55E;   /* green-500 — shipped / running fine */
+  --status-attention: #F59E0B;   /* amber-500 — needs your call / stale */
+  --status-failing:   #EF4444;   /* red-500 — error / blocked */
+  --status-active:    #3B82F6;   /* blue-500 — in flight, working */
+  --status-team:      #06B6D4;   /* cyan-500 — from the team / inbox */
+  --status-project:   #10B981;   /* emerald-500 — project memory */
+  --status-meta:      #EC4899;   /* pink-500 — meta / about AIIA */
+  --status-agents:    #6366F1;   /* indigo-500 — agent memory */
+  --status-idle:      #3A3A3A;   /* loop hasn't run yet */
+
+  /* Glass overlays — semi-transparent fills for cards & pills */
+  --healthy-10:   rgba(34, 197, 94, 0.10);
+  --healthy-20:   rgba(34, 197, 94, 0.20);
+  --attention-10: rgba(245, 158, 11, 0.10);
+  --attention-20: rgba(245, 158, 11, 0.20);
+  --failing-10:   rgba(239, 68, 68, 0.10);
+  --active-10:    rgba(59, 130, 246, 0.10);
+  --team-10:      rgba(6, 182, 212, 0.10);
+
+  /* ── Type ──────────────────────────────────────────────────────────── */
+  --font-display: "Cormorant Garamond", "ITC Galliard", "Adobe Caslon Pro", Garamond, serif;
+  --font-body:    "EB Garamond", "Adobe Caslon Pro", Garamond, "Georgia", serif;
+  --font-sans:    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, sans-serif;
+  --font-mono:    "JetBrains Mono", "SF Mono", "IBM Plex Mono", ui-monospace, monospace;
+
+  /* Weight tokens */
+  --w-regular:  400;
+  --w-medium:   500;
+  --w-semibold: 600;
+  --w-bold:     700;
+
+  /* Tracking */
+  --track-display: 0.04em;   /* wide-set caps, like book covers */
+  --track-eyebrow: 0.25em;   /* "RIGHT NOW", "PULSE", section labels */
+  --track-brand:   0.40em;   /* "AIIA" wordmark */
+  --track-tight:  -0.01em;
+  --track-normal:  0;
+
+  /* ── Spacing scale (4px base) ───────────────────────────────────────── */
+  --s-1:   4px;
+  --s-2:   8px;
+  --s-3:   12px;
+  --s-4:   16px;
+  --s-5:   20px;
+  --s-6:   24px;
+  --s-8:   32px;
+  --s-10:  40px;
+  --s-12:  48px;
+  --s-16:  64px;
+  --s-20:  80px;
+
+  /* ── Radius ─────────────────────────────────────────────────────────── */
+  --r-sm:   4px;     /* status pills, small chips */
+  --r-md:   8px;     /* cards, inputs */
+  --r-lg:   12px;    /* modals */
+  --r-xl:   16px;    /* main panels */
+  --r-pill: 9999px;  /* identity avatars, category chips */
+
+  /* ── Elevation ──────────────────────────────────────────────────────── */
+  /* On dark surfaces, elevation is mostly conveyed by border + slight glow */
+  --shadow-sm:    0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md:    0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-modal: 0 24px 64px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  --shadow-glow-amethyst: 0 0 0 1px var(--amethyst-glass-40), 0 8px 24px var(--amethyst-glass-20);
+  --shadow-glow-cinnabar: 0 0 0 1px rgba(193, 59, 42, 0.30), 0 8px 24px rgba(193, 59, 42, 0.15);
+
+  /* ── Motion ─────────────────────────────────────────────────────────── */
+  --ease-out:   cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in:    cubic-bezier(0.7, 0, 0.84, 0);
+  --t-fast:     120ms;
+  --t-base:     200ms;
+  --t-slow:     400ms;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   SEMANTIC type styles — apply directly to elements
+   ─────────────────────────────────────────────────────────────────────── */
+
+/* Display (brand surface — used on mint, paper, hero blocks) */
+.t-display-xl {
+  font-family: var(--font-display);
+  font-weight: var(--w-semibold);
+  font-size: 88px;
+  line-height: 0.95;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--ink-900);
+}
+.t-display-lg {
+  font-family: var(--font-display);
+  font-weight: var(--w-semibold);
+  font-size: 56px;
+  line-height: 1.05;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--ink-900);
+}
+.t-display-md {
+  font-family: var(--font-display);
+  font-weight: var(--w-semibold);
+  font-size: 36px;
+  line-height: 1.15;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--ink-900);
+}
+
+/* The "MEDITATIONS" red. Used once. Maybe twice. Never as a colour scheme. */
+.t-cinnabar { color: var(--cinnabar-500); }
+
+/* Body — brand prose */
+.t-body-lg {
+  font-family: var(--font-body);
+  font-weight: var(--w-regular);
+  font-size: 22px;
+  line-height: 1.45;
+  color: var(--ink-800);
+}
+.t-body {
+  font-family: var(--font-body);
+  font-weight: var(--w-regular);
+  font-size: 18px;
+  line-height: 1.55;
+  color: var(--ink-800);
+}
+.t-body-sm {
+  font-family: var(--font-body);
+  font-weight: var(--w-regular);
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink-700);
+}
+.t-italic { font-style: italic; }
+
+/* Caption — small body, often a note or attribution */
+.t-caption {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-style: italic;
+  color: var(--ink-600);
+}
+
+/* ─── Console type — sans + mono, dense, no caps abuse ─── */
+.t-h1 {
+  font-family: var(--font-sans);
+  font-size: 30px;
+  font-weight: 300;
+  color: var(--text-1);
+  letter-spacing: var(--track-tight);
+}
+.t-h2 {
+  font-family: var(--font-sans);
+  font-size: 18px;
+  font-weight: var(--w-medium);
+  color: var(--text-2);
+}
+.t-eyebrow {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: var(--w-semibold);
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--text-4);
+}
+.t-brand {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: var(--w-bold);
+  letter-spacing: var(--track-brand);
+  color: var(--amethyst-400);
+}
+.t-ui {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--text-2);
+}
+.t-ui-sm {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--text-3);
+}
+.t-meta {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  color: var(--text-5);
+}
+.t-code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-2);
+}
+.t-code-sm {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-4);
+}
+
+/* ─── Reset helpers ─── */
+html { font-family: var(--font-sans); }
+.brand-surface {
+  background: var(--mint-300);
+  color: var(--ink-900);
+  font-family: var(--font-body);
+}
+.console-surface {
+  background: var(--void);
+  color: var(--text-2);
+  font-family: var(--font-sans);
+}
