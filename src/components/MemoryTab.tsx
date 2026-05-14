@@ -271,7 +271,7 @@ export function MemoryTab() {
         <div className="max-w-md text-center">
           <div
             aria-hidden
-            className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-status-attention/40 bg-status-attention/30 text-2xl text-status-attention"
+            className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-status-attention/40 bg-status-attention/15 text-2xl text-status-attention"
           >
             ⚠
           </div>
@@ -353,8 +353,8 @@ export function MemoryTab() {
             className={
               "pointer-events-none absolute inset-x-0 bottom-6 mx-auto w-fit max-w-[80%] rounded-md border px-3 py-1.5 text-xs " +
               (toast.kind === "error"
-                ? "border-status-failing/60 bg-status-failing/80 text-status-failing"
-                : "border-amethyst-700/60 bg-amethyst-700/80 text-amethyst-300")
+                ? "border-status-failing/40 bg-status-failing/15 text-status-failing"
+                : "border-status-healthy/40 bg-status-healthy/15 text-status-healthy")
             }
             role="status"
           >

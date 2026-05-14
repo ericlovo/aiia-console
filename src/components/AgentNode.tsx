@@ -59,7 +59,7 @@ export function AgentNode({ data, selected }: NodeProps<AgentNodeType>) {
           </div>
         )}
         {data._error && (
-          <div className="mt-2 rounded bg-status-failing/40 p-2 text-[11px] text-status-failing border border-status-failing/50">
+          <div className="mt-2 rounded bg-status-failing/15 p-2 text-[11px] text-status-failing border border-status-failing/40">
             {data._error}
           </div>
         )}

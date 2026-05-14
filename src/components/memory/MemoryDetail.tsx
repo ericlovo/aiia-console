@@ -215,7 +215,7 @@ export function MemoryDetail(props: Props) {
           className={
             "flex-1 rounded-md border px-2 py-1.5 text-xs disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-amethyst-500 " +
             (confirming
-              ? "border-status-failing bg-status-failing text-status-failing hover:bg-status-failing"
+              ? "border-status-failing bg-status-failing/15 text-status-failing hover:bg-status-failing/25"
               : "border-carbon-6 bg-carbon-1 text-text-3 hover:border-status-failing hover:text-status-failing")
           }
           title={confirming ? "Click again to confirm" : "Forget this memory"}

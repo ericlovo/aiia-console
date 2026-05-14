@@ -158,7 +158,7 @@ export function AddMemoryModal(props: Props) {
         </div>
 
         {error && (
-          <div className="mb-3 rounded-md border border-status-failing/60 bg-status-failing/40 px-3 py-2 text-xs text-status-failing">
+          <div className="mb-3 rounded-md border border-status-failing/40 bg-status-failing/15 px-3 py-2 text-xs text-status-failing">
             {error}
           </div>
         )}

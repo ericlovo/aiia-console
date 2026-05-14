@@ -20,16 +20,26 @@ export const MEMORY_CATEGORIES = [
 
 export type MemoryCategory = (typeof MEMORY_CATEGORIES)[number];
 
+// Per-category hue for the memory graph. Values are passed to react-force-graph
+// as raw CSS color strings (the graph runs on canvas, so CSS custom properties
+// can't be used directly). Where a design-system semantic token exists with the
+// same color, the matching token name is noted alongside.
+//
+// Categories without a clean design-token mapping (decisions, wip, meta) use
+// hand-picked values. `decisions` aligns to amethyst-500 — the console's brand
+// accent — since decisions are identity-defining. `wip` stays orange (no
+// design-token equivalent; "needs work" sits between attention and failing).
+// `meta` is a neutral mid-gray (no design-token equivalent in the dark scale).
 export const CATEGORY_COLORS: Record<MemoryCategory, string> = {
-  decisions: "#a855f7",
-  patterns: "#3b82f6",
-  lessons: "#10b981",
-  team: "#f59e0b",
-  project: "#06b6d4",
-  agents: "#ec4899",
-  sessions: "#6366f1",
-  wip: "#f97316",
-  meta: "#71717a",
+  decisions: "#8B5CF6",  // amethyst-500
+  patterns:  "#3B82F6",  // status-active
+  lessons:   "#10B981",  // status-project
+  team:      "#F59E0B",  // status-attention
+  project:   "#06B6D4",  // status-team
+  agents:    "#EC4899",  // status-meta
+  sessions:  "#6366F1",  // status-agents
+  wip:       "#F97316",  // (no design token — kept)
+  meta:      "#71717A",  // (no design token — kept)
 };
 
 export type Memory = {

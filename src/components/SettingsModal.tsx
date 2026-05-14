@@ -201,7 +201,7 @@ export function SettingsModal({ open, onClose, devMode, onDevModeChange }: Props
                     className={
                       "rounded px-1.5 py-0.5 text-[10px] " +
                       (configured
-                        ? "bg-amethyst-700/40 text-amethyst-300"
+                        ? "bg-status-healthy/15 text-status-healthy"
                         : "bg-carbon-3 text-text-5")
                     }
                   >
