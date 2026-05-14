@@ -3,56 +3,30 @@ import { useEffect, useState } from "react";
 import { SettingsModal } from "./components/SettingsModal";
 import { ChatTab } from "./components/ChatTab";
 import { MemoryTab } from "./components/MemoryTab";
-import { DevTab } from "./components/DevTab";
 import "./App.css";
 
-const DEV_MODE_KEY = "aiia-console-dev-mode";
 const ACTIVE_TAB_KEY = "aiia-console-active-tab";
 
-type TabId = "chat" | "memory" | "dev";
+type TabId = "chat" | "memory";
 
-function readDevMode(): boolean {
-  if (typeof window === "undefined") return false;
-  return window.localStorage.getItem(DEV_MODE_KEY) === "true";
-}
-
-function readActiveTab(devMode: boolean): TabId {
+function readActiveTab(): TabId {
   if (typeof window === "undefined") return "chat";
   const raw = window.localStorage.getItem(ACTIVE_TAB_KEY);
   if (raw === "chat" || raw === "memory") return raw;
-  if (raw === "dev" && devMode) return "dev";
   return "chat";
 }
 
 function App() {
-  const [devMode, setDevMode] = useState<boolean>(readDevMode);
-  const [activeTab, setActiveTab] = useState<TabId>(() => readActiveTab(readDevMode()));
+  const [activeTab, setActiveTab] = useState<TabId>(readActiveTab);
   const [settingsOpen, setSettingsOpen] = useState(false);
-
-  useEffect(() => {
-    window.localStorage.setItem(DEV_MODE_KEY, devMode ? "true" : "false");
-    if (!devMode && activeTab === "dev") {
-      setActiveTab("chat");
-    }
-  }, [devMode, activeTab]);
 
   useEffect(() => {
     window.localStorage.setItem(ACTIVE_TAB_KEY, activeTab);
   }, [activeTab]);
 
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const next = (e as CustomEvent<boolean>).detail;
-      if (typeof next === "boolean") setDevMode(next);
-    };
-    window.addEventListener("aiia-console:dev-mode", handler);
-    return () => window.removeEventListener("aiia-console:dev-mode", handler);
-  }, []);
-
   const tabs: { id: TabId; label: string }[] = [
     { id: "chat", label: "Chat" },
     { id: "memory", label: "Memory" },
-    ...(devMode ? [{ id: "dev" as const, label: "Dev" }] : []),
   ];
 
   return (
@@ -113,15 +87,12 @@ function App() {
       <SettingsModal
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
-        devMode={devMode}
-        onDevModeChange={setDevMode}
       />
 
       {/* Tab body */}
       <div className="flex min-h-0 flex-1">
         {activeTab === "chat" && <ChatTab />}
         {activeTab === "memory" && <MemoryTab />}
-        {activeTab === "dev" && devMode && <DevTab />}
       </div>
     </div>
   );

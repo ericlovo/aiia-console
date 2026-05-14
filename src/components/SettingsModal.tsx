@@ -11,8 +11,6 @@ import { invoke } from "@tauri-apps/api/core";
 type Props = {
   open: boolean;
   onClose: () => void;
-  devMode: boolean;
-  onDevModeChange: (next: boolean) => void;
 };
 
 type ProviderRow = {
@@ -28,7 +26,7 @@ const PROVIDERS: ProviderRow[] = [
   { id: "google", label: "Google (Gemini)" },
 ];
 
-export function SettingsModal({ open, onClose, devMode, onDevModeChange }: Props) {
+export function SettingsModal({ open, onClose }: Props) {
   const [present, setPresent] = useState<Record<string, boolean>>({});
   const [inputs, setInputs] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<Record<string, string>>({});
@@ -136,40 +134,6 @@ export function SettingsModal({ open, onClose, devMode, onDevModeChange }: Props
               >
                 <option value="dark">Dark (only option for now)</option>
               </select>
-            </div>
-          </section>
-
-          {/* ---- Developer mode ---- */}
-          <section>
-            <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-text-4">
-              Developer mode
-            </h3>
-            <div className="flex items-center justify-between rounded border border-carbon-4 bg-carbon-1/40 p-3">
-              <div>
-                <div className="text-xs text-text-2">
-                  Show developer tab
-                </div>
-                <div className="text-[10px] text-text-5">
-                  Surfaces the visual flow canvas, node palette, and inspector.
-                </div>
-              </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={devMode}
-                onClick={() => onDevModeChange(!devMode)}
-                className={
-                  "relative h-5 w-9 rounded-full transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amethyst-500 " +
-                  (devMode ? "bg-amethyst-500" : "bg-carbon-7")
-                }
-              >
-                <span
-                  className={
-                    "absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all " +
-                    (devMode ? "left-[18px]" : "left-0.5")
-                  }
-                />
-              </button>
             </div>
           </section>
 
