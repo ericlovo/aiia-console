@@ -50,6 +50,15 @@ export function SettingsModal({ open, onClose }: Props) {
     }
   }, [open, refresh]);
 
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
   const save = useCallback(
     async (id: string) => {
       const key = (inputs[id] ?? "").trim();
@@ -101,9 +110,10 @@ export function SettingsModal({ open, onClose }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="text-xs text-text-4 hover:text-text-2"
+            aria-label="Close settings"
+            className="flex h-7 w-7 items-center justify-center rounded-full text-lg leading-none text-text-4 transition-colors hover:bg-vellum-100 hover:text-text-1 focus:outline-none"
           >
-            Close
+            ×
           </button>
         </div>
 
