@@ -55,9 +55,9 @@ export function MemoryDetail(props: Props) {
 
   if (!memory || !category) {
     return (
-      <aside className="flex h-full w-[340px] shrink-0 flex-col border-l border-neutral-800 bg-neutral-950">
+      <aside className="flex h-full w-[340px] shrink-0 flex-col border-l border-carbon-4 bg-void">
         <div className="flex flex-1 items-center justify-center px-6 text-center">
-          <p className="text-sm leading-relaxed text-neutral-500">
+          <p className="text-sm leading-relaxed text-text-5">
             Pick a node to see what your AI remembers.
           </p>
         </div>
@@ -99,11 +99,11 @@ export function MemoryDetail(props: Props) {
   };
 
   return (
-    <aside className="flex h-full w-[340px] shrink-0 flex-col border-l border-neutral-800 bg-neutral-950">
+    <aside className="flex h-full w-[340px] shrink-0 flex-col border-l border-carbon-4 bg-void">
       <div className="flex-1 overflow-y-auto px-5 py-4">
         <div className="mb-3">
           <span
-            className="inline-flex items-center gap-1.5 rounded-full border border-neutral-800 bg-neutral-900 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider"
+            className="inline-flex items-center gap-1.5 rounded-full border border-carbon-4 bg-carbon-1 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider"
             style={{ color }}
           >
             <span
@@ -115,17 +115,17 @@ export function MemoryDetail(props: Props) {
           </span>
         </div>
 
-        <p className="mb-4 text-sm leading-relaxed text-neutral-100 whitespace-pre-wrap break-words">
+        <p className="mb-4 text-sm leading-relaxed text-text-1 whitespace-pre-wrap break-words">
           {memory.fact}
         </p>
 
         <dl className="mb-4 space-y-2 text-xs">
           {memory.source && (
             <div>
-              <dt className="text-neutral-500">Source</dt>
+              <dt className="text-text-5">Source</dt>
               <dd
                 className={
-                  "mt-0.5 break-all text-neutral-300 " +
+                  "mt-0.5 break-all text-text-3 " +
                   (looksLikePath(memory.source) ? "font-mono" : "")
                 }
               >
@@ -135,9 +135,9 @@ export function MemoryDetail(props: Props) {
           )}
           {memory.created_at && (
             <div>
-              <dt className="text-neutral-500">Created</dt>
+              <dt className="text-text-5">Created</dt>
               <dd
-                className="mt-0.5 text-neutral-300"
+                className="mt-0.5 text-text-3"
                 title={memory.created_at}
               >
                 {relativeTime(memory.created_at)}
@@ -145,19 +145,19 @@ export function MemoryDetail(props: Props) {
             </div>
           )}
           <div>
-            <dt className="text-neutral-500">ID</dt>
-            <dd className="mt-0.5 break-all font-mono text-[11px] text-neutral-400">
+            <dt className="text-text-5">ID</dt>
+            <dd className="mt-0.5 break-all font-mono text-[11px] text-text-4">
               {memory.id}
             </dd>
           </div>
         </dl>
 
         {!metaIsEmpty && (
-          <details className="mb-4 rounded-md border border-neutral-800 bg-neutral-900/60 px-3 py-2">
-            <summary className="cursor-pointer text-xs text-neutral-400 hover:text-neutral-200">
+          <details className="mb-4 rounded-md border border-carbon-4 bg-carbon-1/60 px-3 py-2">
+            <summary className="cursor-pointer text-xs text-text-4 hover:text-text-2">
               Metadata
             </summary>
-            <pre className="mt-2 overflow-x-auto text-[11px] leading-relaxed text-neutral-300">
+            <pre className="mt-2 overflow-x-auto text-[11px] leading-relaxed text-text-3">
               {JSON.stringify(meta, null, 2)}
             </pre>
           </details>
@@ -165,7 +165,7 @@ export function MemoryDetail(props: Props) {
 
         {connected.length > 0 && (
           <div className="mb-4">
-            <h4 className="mb-2 text-[11px] font-medium uppercase tracking-wider text-neutral-500">
+            <h4 className="mb-2 text-[11px] font-medium uppercase tracking-wider text-text-5">
               Connected ({connected.length})
             </h4>
             <ul className="space-y-1">
@@ -176,7 +176,7 @@ export function MemoryDetail(props: Props) {
                     <button
                       type="button"
                       onClick={() => onSelect(c.id)}
-                      className="group flex w-full items-start gap-2 rounded-md border border-transparent px-2 py-1.5 text-left text-xs text-neutral-400 hover:border-neutral-800 hover:bg-neutral-900 hover:text-neutral-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                      className="group flex w-full items-start gap-2 rounded-md border border-transparent px-2 py-1.5 text-left text-xs text-text-4 hover:border-carbon-4 hover:bg-carbon-1 hover:text-text-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-amethyst-500"
                     >
                       <span
                         aria-hidden
@@ -194,17 +194,17 @@ export function MemoryDetail(props: Props) {
       </div>
 
       {error && (
-        <div className="border-t border-red-900/40 bg-red-950/40 px-5 py-2 text-xs text-red-300">
+        <div className="border-t border-status-failing/40 bg-status-failing/40 px-5 py-2 text-xs text-status-failing">
           {error}
         </div>
       )}
 
-      <div className="flex items-center gap-2 border-t border-neutral-800 bg-neutral-950 px-5 py-3">
+      <div className="flex items-center gap-2 border-t border-carbon-4 bg-void px-5 py-3">
         <button
           type="button"
           onClick={() => setEditOpen(true)}
           disabled={busy}
-          className="flex-1 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-xs text-neutral-300 hover:border-neutral-500 hover:text-neutral-100 disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+          className="flex-1 rounded-md border border-carbon-6 bg-carbon-1 px-2 py-1.5 text-xs text-text-3 hover:border-carbon-7 hover:text-text-1 disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-amethyst-500"
         >
           Edit
         </button>
@@ -213,10 +213,10 @@ export function MemoryDetail(props: Props) {
           onClick={handleForget}
           disabled={busy}
           className={
-            "flex-1 rounded-md border px-2 py-1.5 text-xs disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 " +
+            "flex-1 rounded-md border px-2 py-1.5 text-xs disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-amethyst-500 " +
             (confirming
-              ? "border-red-700 bg-red-950 text-red-200 hover:bg-red-900"
-              : "border-neutral-700 bg-neutral-900 text-neutral-300 hover:border-red-700 hover:text-red-200")
+              ? "border-status-failing bg-status-failing/15 text-status-failing hover:bg-status-failing/25"
+              : "border-carbon-6 bg-carbon-1 text-text-3 hover:border-status-failing hover:text-status-failing")
           }
           title={confirming ? "Click again to confirm" : "Forget this memory"}
         >
@@ -226,7 +226,7 @@ export function MemoryDetail(props: Props) {
           type="button"
           onClick={handleExport}
           disabled={busy}
-          className="flex-1 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-xs text-neutral-300 hover:border-neutral-500 hover:text-neutral-100 disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+          className="flex-1 rounded-md border border-carbon-6 bg-carbon-1 px-2 py-1.5 text-xs text-text-3 hover:border-carbon-7 hover:text-text-1 disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-amethyst-500"
         >
           Export
         </button>
@@ -234,18 +234,18 @@ export function MemoryDetail(props: Props) {
 
       {editOpen && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="w-[300px] rounded-lg border border-neutral-700 bg-neutral-950 p-5 shadow-xl">
-            <h3 className="mb-2 text-sm font-semibold text-neutral-100">
+          <div className="w-[300px] rounded-lg border border-carbon-6 bg-void p-5 shadow-xl">
+            <h3 className="mb-2 text-sm font-semibold text-text-1">
               Edit not yet wired
             </h3>
-            <p className="mb-4 text-xs leading-relaxed text-neutral-400">
+            <p className="mb-4 text-xs leading-relaxed text-text-4">
               The Brain doesn&apos;t yet expose a memory-update endpoint. For
               now, forget the memory and add a corrected version.
             </p>
             <button
               type="button"
               onClick={() => setEditOpen(false)}
-              className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-xs text-neutral-200 hover:border-neutral-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+              className="w-full rounded-md border border-carbon-6 bg-carbon-1 px-3 py-1.5 text-xs text-text-2 hover:border-carbon-7 focus:outline-none focus-visible:ring-2 focus-visible:ring-amethyst-500"
             >
               Got it
             </button>

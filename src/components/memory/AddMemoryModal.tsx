@@ -87,37 +87,37 @@ export function AddMemoryModal(props: Props) {
     >
       <form
         onSubmit={handleSubmit}
-        className="w-[480px] max-w-[92vw] rounded-lg border border-neutral-700 bg-neutral-950 p-5 shadow-xl"
+        className="w-[480px] max-w-[92vw] rounded-lg border border-carbon-6 bg-void p-5 shadow-xl"
       >
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-neutral-100">
+          <h2 className="text-base font-semibold text-text-1">
             Add memory
           </h2>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="text-neutral-500 hover:text-neutral-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+            className="text-text-5 hover:text-text-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-amethyst-500"
           >
             ✕
           </button>
         </div>
 
         <label className="mb-3 block">
-          <span className="mb-1 block text-xs text-neutral-400">Fact</span>
+          <span className="mb-1 block text-xs text-text-4">Fact</span>
           <textarea
             ref={textareaRef}
             value={fact}
             onChange={(e) => setFact(e.target.value)}
             rows={4}
             placeholder="What should your AI remember?"
-            className="block w-full resize-y rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-600 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            className="block w-full resize-y rounded-md border border-carbon-6 bg-carbon-1 px-3 py-2 text-sm text-text-1 placeholder:text-text-6 focus:border-amethyst-500 focus:outline-none focus:ring-1 focus:ring-amethyst-500"
           />
         </label>
 
         <div className="mb-3 grid grid-cols-2 gap-3">
           <label className="block">
-            <span className="mb-1 block text-xs text-neutral-400">
+            <span className="mb-1 block text-xs text-text-4">
               Category
             </span>
             <select
@@ -125,7 +125,7 @@ export function AddMemoryModal(props: Props) {
               onChange={(e) =>
                 setCategory(e.target.value as MemoryCategory)
               }
-              className="block w-full rounded-md border border-neutral-700 bg-neutral-900 px-2 py-2 text-sm text-neutral-100 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              className="block w-full rounded-md border border-carbon-6 bg-carbon-1 px-2 py-2 text-sm text-text-1 focus:border-amethyst-500 focus:outline-none focus:ring-1 focus:ring-amethyst-500"
             >
               {MEMORY_CATEGORIES.map((c) => (
                 <option key={c} value={c}>
@@ -135,7 +135,7 @@ export function AddMemoryModal(props: Props) {
             </select>
           </label>
           <label className="block">
-            <span className="mb-1 block text-xs text-neutral-400">
+            <span className="mb-1 block text-xs text-text-4">
               Source (optional)
             </span>
             <input
@@ -143,22 +143,22 @@ export function AddMemoryModal(props: Props) {
               value={source}
               onChange={(e) => setSource(e.target.value)}
               placeholder="e.g. AIIA/Decisions/2026-05-12.md"
-              className="block w-full rounded-md border border-neutral-700 bg-neutral-900 px-2 py-2 text-sm text-neutral-100 placeholder:text-neutral-600 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              className="block w-full rounded-md border border-carbon-6 bg-carbon-1 px-2 py-2 text-sm text-text-1 placeholder:text-text-6 focus:border-amethyst-500 focus:outline-none focus:ring-1 focus:ring-amethyst-500"
             />
           </label>
         </div>
 
-        <div className="mb-4 flex items-center gap-2 text-[11px] text-neutral-500">
+        <div className="mb-4 flex items-center gap-2 text-[11px] text-text-5">
           <span
             aria-hidden
             className="inline-block h-2 w-2 rounded-full"
             style={{ backgroundColor: CATEGORY_COLORS[category] }}
           />
-          Will appear in the <strong className="text-neutral-300">{category}</strong> cluster.
+          Will appear in the <strong className="text-text-3">{category}</strong> cluster.
         </div>
 
         {error && (
-          <div className="mb-3 rounded-md border border-red-900/60 bg-red-950/40 px-3 py-2 text-xs text-red-300">
+          <div className="mb-3 rounded-md border border-status-failing/40 bg-status-failing/15 px-3 py-2 text-xs text-status-failing">
             {error}
           </div>
         )}
@@ -168,14 +168,14 @@ export function AddMemoryModal(props: Props) {
             type="button"
             onClick={onClose}
             disabled={busy}
-            className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-xs text-neutral-300 hover:border-neutral-500 disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+            className="rounded-md border border-carbon-6 bg-carbon-1 px-3 py-1.5 text-xs text-text-3 hover:border-carbon-7 disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-amethyst-500"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={busy || !fact.trim()}
-            className="rounded-md border border-emerald-700 bg-emerald-600/90 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+            className="rounded-md border border-amethyst-700 bg-amethyst-600/90 px-3 py-1.5 text-xs font-medium text-white hover:bg-amethyst-500 disabled:cursor-not-allowed disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-amethyst-500"
           >
             {busy ? "Saving…" : "Save"}
           </button>

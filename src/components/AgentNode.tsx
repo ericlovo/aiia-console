@@ -4,10 +4,10 @@ import { getProviderModelId } from "../types";
 
 const statusColor = (s?: string) => {
   switch (s) {
-    case "running": return "bg-amber-500";
-    case "done":    return "bg-emerald-500";
-    case "error":   return "bg-rose-500";
-    default:        return "bg-neutral-600";
+    case "running": return "bg-status-attention";
+    case "done":    return "bg-amethyst-500";
+    case "error":   return "bg-status-failing";
+    default:        return "bg-carbon-7";
   }
 };
 
@@ -15,37 +15,37 @@ export function AgentNode({ data, selected }: NodeProps<AgentNodeType>) {
   return (
     <div
       className={
-        "min-w-[260px] max-w-[320px] rounded-lg border bg-neutral-900 text-neutral-100 shadow-sm " +
+        "min-w-[260px] max-w-[320px] rounded-lg border bg-carbon-1 text-text-1 shadow-sm " +
         (selected
-          ? "border-indigo-400 ring-1 ring-indigo-400/40"
-          : "border-neutral-700")
+          ? "border-status-agents ring-1 ring-status-agents/40"
+          : "border-carbon-6")
       }
     >
-      <div className="flex items-center gap-2 rounded-t-lg bg-indigo-600/90 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide">
+      <div className="flex items-center gap-2 rounded-t-lg bg-status-agents/90 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide">
         <span className={`inline-block h-2 w-2 rounded-full ${statusColor(data._status)}`} />
         Agent
         {data._status === "running" && (
-          <span className="ml-auto text-[10px] font-normal text-indigo-100/80">streaming…</span>
+          <span className="ml-auto text-[10px] font-normal text-status-agents/80">streaming…</span>
         )}
       </div>
       <div className="px-3 py-2 text-xs">
-        <div className="font-medium text-neutral-100">{data.label || "Agent"}</div>
-        <div className="mt-1 text-[10px] text-neutral-400">model</div>
-        <div className="text-neutral-300 font-mono text-[11px]">{getProviderModelId(data) || "—"}</div>
+        <div className="font-medium text-text-1">{data.label || "Agent"}</div>
+        <div className="mt-1 text-[10px] text-text-4">model</div>
+        <div className="text-text-3 font-mono text-[11px]">{getProviderModelId(data) || "—"}</div>
         {data.prompt && (
           <>
-            <div className="mt-1 text-[10px] text-neutral-400">prompt</div>
-            <div className="line-clamp-2 text-neutral-300">{data.prompt}</div>
+            <div className="mt-1 text-[10px] text-text-4">prompt</div>
+            <div className="line-clamp-2 text-text-3">{data.prompt}</div>
           </>
         )}
         {data.tools && data.tools.length > 0 && (
           <>
-            <div className="mt-1 text-[10px] text-neutral-400">tools</div>
+            <div className="mt-1 text-[10px] text-text-4">tools</div>
             <div className="flex flex-wrap gap-1">
               {data.tools.map((t) => (
                 <span
                   key={t}
-                  className="rounded bg-neutral-800 px-1.5 py-0.5 text-[10px] text-neutral-300"
+                  className="rounded bg-carbon-3 px-1.5 py-0.5 text-[10px] text-text-3"
                 >
                   {t}
                 </span>
@@ -54,12 +54,12 @@ export function AgentNode({ data, selected }: NodeProps<AgentNodeType>) {
           </>
         )}
         {data._output && (
-          <div className="mt-2 max-h-32 overflow-auto rounded bg-neutral-950/80 p-2 text-[11px] leading-relaxed text-neutral-200 whitespace-pre-wrap border border-neutral-800">
+          <div className="mt-2 max-h-32 overflow-auto rounded bg-void/80 p-2 text-[11px] leading-relaxed text-text-2 whitespace-pre-wrap border border-carbon-4">
             {data._output}
           </div>
         )}
         {data._error && (
-          <div className="mt-2 rounded bg-rose-950/40 p-2 text-[11px] text-rose-300 border border-rose-900/50">
+          <div className="mt-2 rounded bg-status-failing/15 p-2 text-[11px] text-status-failing border border-status-failing/40">
             {data._error}
           </div>
         )}
@@ -67,12 +67,12 @@ export function AgentNode({ data, selected }: NodeProps<AgentNodeType>) {
       <Handle
         type="target"
         position={Position.Left}
-        className="!h-3 !w-3 !border-neutral-900 !bg-indigo-400"
+        className="!h-3 !w-3 !border-carbon-3 !bg-status-agents"
       />
       <Handle
         type="source"
         position={Position.Right}
-        className="!h-3 !w-3 !border-neutral-900 !bg-indigo-400"
+        className="!h-3 !w-3 !border-carbon-3 !bg-status-agents"
       />
     </div>
   );

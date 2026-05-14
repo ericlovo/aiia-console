@@ -139,17 +139,17 @@ export function MemoryGraph(props: Props) {
         <div className="max-w-md">
           <div
             aria-hidden
-            className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-neutral-800 bg-neutral-900 text-3xl text-emerald-400"
+            className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-carbon-4 bg-carbon-1 text-3xl text-amethyst-400"
           >
             ◌
           </div>
-          <h3 className="mb-2 text-lg font-semibold text-neutral-100">
+          <h3 className="mb-2 text-lg font-semibold text-text-1">
             No memories yet
           </h3>
-          <p className="text-sm leading-relaxed text-neutral-400">
+          <p className="text-sm leading-relaxed text-text-4">
             Your AI will start building this graph as you chat, decide, and
             store facts. Or add one yourself with{" "}
-            <strong className="text-neutral-200">+ Add memory</strong>.
+            <strong className="text-text-2">+ Add memory</strong>.
           </p>
         </div>
       </div>

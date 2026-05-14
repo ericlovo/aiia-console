@@ -61,9 +61,9 @@ export type AppNode = AgentNode | VaultReadNode | VaultWriteNode;
 export type NodeKind = "agent" | "vaultRead" | "vaultWrite";
 
 export const NODE_KINDS: { kind: NodeKind; label: string; color: string }[] = [
-  { kind: "agent", label: "Agent", color: "bg-indigo-600" },
-  { kind: "vaultRead", label: "Vault Read", color: "bg-emerald-600" },
-  { kind: "vaultWrite", label: "Vault Write", color: "bg-amber-600" },
+  { kind: "agent", label: "Agent", color: "bg-status-agents" },
+  { kind: "vaultRead", label: "Vault Read", color: "bg-amethyst-600" },
+  { kind: "vaultWrite", label: "Vault Write", color: "bg-status-attention" },
 ];
 
 export function defaultDataFor(kind: NodeKind): FlowNodeData {

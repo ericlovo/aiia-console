@@ -93,24 +93,24 @@ export function SettingsModal({ open, onClose, devMode, onDevModeChange }: Props
       onClick={onClose}
     >
       <div
-        className="w-[520px] max-w-[92vw] rounded-lg border border-neutral-800 bg-neutral-950 shadow-xl"
+        className="w-[520px] max-w-[92vw] rounded-lg border border-carbon-4 bg-void shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-neutral-800 px-4 py-3">
-          <h2 className="text-sm font-semibold text-neutral-100">
+        <div className="flex items-center justify-between border-b border-carbon-4 px-4 py-3">
+          <h2 className="text-sm font-semibold text-text-1">
             Settings
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="text-xs text-neutral-400 hover:text-neutral-200"
+            className="text-xs text-text-4 hover:text-text-2"
           >
             Close
           </button>
         </div>
 
         {error && (
-          <div className="border-b border-rose-900/50 bg-rose-950/30 px-4 py-1.5 text-[11px] text-rose-300">
+          <div className="border-b border-status-failing/50 bg-status-failing/30 px-4 py-1.5 text-[11px] text-status-failing">
             {error}
           </div>
         )}
@@ -118,13 +118,13 @@ export function SettingsModal({ open, onClose, devMode, onDevModeChange }: Props
         <div className="space-y-4 p-4">
           {/* ---- Appearance ---- */}
           <section>
-            <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
+            <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-text-4">
               Appearance
             </h3>
-            <div className="flex items-center justify-between rounded border border-neutral-800 bg-neutral-900/40 p-3">
+            <div className="flex items-center justify-between rounded border border-carbon-4 bg-carbon-1/40 p-3">
               <label
                 htmlFor="theme-select"
-                className="text-xs text-neutral-200"
+                className="text-xs text-text-2"
               >
                 Theme
               </label>
@@ -132,7 +132,7 @@ export function SettingsModal({ open, onClose, devMode, onDevModeChange }: Props
                 id="theme-select"
                 disabled
                 value="dark"
-                className="rounded border border-neutral-800 bg-neutral-950 px-2 py-1 text-[11px] text-neutral-400 disabled:cursor-not-allowed"
+                className="rounded border border-carbon-4 bg-void px-2 py-1 text-[11px] text-text-4 disabled:cursor-not-allowed"
               >
                 <option value="dark">Dark (only option for now)</option>
               </select>
@@ -141,15 +141,15 @@ export function SettingsModal({ open, onClose, devMode, onDevModeChange }: Props
 
           {/* ---- Developer mode ---- */}
           <section>
-            <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
+            <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-text-4">
               Developer mode
             </h3>
-            <div className="flex items-center justify-between rounded border border-neutral-800 bg-neutral-900/40 p-3">
+            <div className="flex items-center justify-between rounded border border-carbon-4 bg-carbon-1/40 p-3">
               <div>
-                <div className="text-xs text-neutral-200">
+                <div className="text-xs text-text-2">
                   Show developer tab
                 </div>
-                <div className="text-[10px] text-neutral-500">
+                <div className="text-[10px] text-text-5">
                   Surfaces the visual flow canvas, node palette, and inspector.
                 </div>
               </div>
@@ -159,8 +159,8 @@ export function SettingsModal({ open, onClose, devMode, onDevModeChange }: Props
                 aria-checked={devMode}
                 onClick={() => onDevModeChange(!devMode)}
                 className={
-                  "relative h-5 w-9 rounded-full transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 " +
-                  (devMode ? "bg-emerald-500" : "bg-neutral-700")
+                  "relative h-5 w-9 rounded-full transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amethyst-500 " +
+                  (devMode ? "bg-amethyst-500" : "bg-carbon-7")
                 }
               >
                 <span
@@ -175,10 +175,10 @@ export function SettingsModal({ open, onClose, devMode, onDevModeChange }: Props
 
           {/* ---- API Keys ---- */}
           <section>
-            <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
+            <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-text-4">
               API Keys
             </h3>
-          <p className="text-[11px] leading-relaxed text-neutral-500">
+          <p className="text-[11px] leading-relaxed text-text-5">
             Keys are stored in <code className="font-mono">~/.aiia/keys.json</code> with 0600
             permissions. They never leave the Rust side; the JS layer only sees whether each
             provider is configured.
@@ -191,18 +191,18 @@ export function SettingsModal({ open, onClose, devMode, onDevModeChange }: Props
             return (
               <div
                 key={p.id}
-                className="rounded border border-neutral-800 bg-neutral-900/40 p-3"
+                className="rounded border border-carbon-4 bg-carbon-1/40 p-3"
               >
                 <div className="mb-1.5 flex items-center justify-between">
-                  <div className="text-xs font-medium text-neutral-100">
+                  <div className="text-xs font-medium text-text-1">
                     {p.label}
                   </div>
                   <span
                     className={
                       "rounded px-1.5 py-0.5 text-[10px] " +
                       (configured
-                        ? "bg-emerald-900/40 text-emerald-300"
-                        : "bg-neutral-800 text-neutral-500")
+                        ? "bg-status-healthy/15 text-status-healthy"
+                        : "bg-carbon-3 text-text-5")
                     }
                   >
                     {configured ? "configured" : "not set"}
@@ -216,12 +216,12 @@ export function SettingsModal({ open, onClose, devMode, onDevModeChange }: Props
                       setInputs((s) => ({ ...s, [p.id]: e.target.value }))
                     }
                     placeholder={configured ? "•••••• (enter new to replace)" : "paste API key"}
-                    className="flex-1 rounded border border-neutral-800 bg-neutral-950 px-2 py-1 font-mono text-[11px] text-neutral-100 focus:border-neutral-600 focus:outline-none"
+                    className="flex-1 rounded border border-carbon-4 bg-void px-2 py-1 font-mono text-[11px] text-text-1 focus:border-carbon-7 focus:outline-none"
                   />
                   <button
                     type="button"
                     onClick={() => save(p.id)}
-                    className="rounded bg-emerald-500 px-2 py-1 text-[11px] font-medium text-neutral-950 hover:bg-emerald-400"
+                    className="rounded bg-amethyst-500 px-2 py-1 text-[11px] font-medium text-void hover:bg-amethyst-400"
                   >
                     Save
                   </button>
@@ -229,13 +229,13 @@ export function SettingsModal({ open, onClose, devMode, onDevModeChange }: Props
                     type="button"
                     onClick={() => clear(p.id)}
                     disabled={!configured}
-                    className="rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-[11px] text-neutral-200 hover:border-rose-500 hover:text-rose-300 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="rounded border border-carbon-6 bg-carbon-1 px-2 py-1 text-[11px] text-text-2 hover:border-status-failing hover:text-status-failing disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     Clear
                   </button>
                 </div>
                 {note && (
-                  <div className="mt-1 text-[10px] text-neutral-500">{note}</div>
+                  <div className="mt-1 text-[10px] text-text-5">{note}</div>
                 )}
               </div>
             );
