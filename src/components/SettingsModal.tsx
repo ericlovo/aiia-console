@@ -11,6 +11,8 @@ import { invoke } from "@tauri-apps/api/core";
 type Props = {
   open: boolean;
   onClose: () => void;
+  devMode: boolean;
+  onDevModeChange: (next: boolean) => void;
 };
 
 type ProviderRow = {
@@ -26,7 +28,7 @@ const PROVIDERS: ProviderRow[] = [
   { id: "google", label: "Google (Gemini)" },
 ];
 
-export function SettingsModal({ open, onClose }: Props) {
+export function SettingsModal({ open, onClose, devMode, onDevModeChange }: Props) {
   const [present, setPresent] = useState<Record<string, boolean>>({});
   const [inputs, setInputs] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<Record<string, string>>({});
@@ -96,7 +98,7 @@ export function SettingsModal({ open, onClose }: Props) {
       >
         <div className="flex items-center justify-between border-b border-neutral-800 px-4 py-3">
           <h2 className="text-sm font-semibold text-neutral-100">
-            API Keys
+            Settings
           </h2>
           <button
             type="button"
@@ -113,7 +115,69 @@ export function SettingsModal({ open, onClose }: Props) {
           </div>
         )}
 
-        <div className="space-y-3 p-4">
+        <div className="space-y-4 p-4">
+          {/* ---- Appearance ---- */}
+          <section>
+            <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
+              Appearance
+            </h3>
+            <div className="flex items-center justify-between rounded border border-neutral-800 bg-neutral-900/40 p-3">
+              <label
+                htmlFor="theme-select"
+                className="text-xs text-neutral-200"
+              >
+                Theme
+              </label>
+              <select
+                id="theme-select"
+                disabled
+                value="dark"
+                className="rounded border border-neutral-800 bg-neutral-950 px-2 py-1 text-[11px] text-neutral-400 disabled:cursor-not-allowed"
+              >
+                <option value="dark">Dark (only option for now)</option>
+              </select>
+            </div>
+          </section>
+
+          {/* ---- Developer mode ---- */}
+          <section>
+            <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
+              Developer mode
+            </h3>
+            <div className="flex items-center justify-between rounded border border-neutral-800 bg-neutral-900/40 p-3">
+              <div>
+                <div className="text-xs text-neutral-200">
+                  Show developer tab
+                </div>
+                <div className="text-[10px] text-neutral-500">
+                  Surfaces the visual flow canvas, node palette, and inspector.
+                </div>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={devMode}
+                onClick={() => onDevModeChange(!devMode)}
+                className={
+                  "relative h-5 w-9 rounded-full transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 " +
+                  (devMode ? "bg-emerald-500" : "bg-neutral-700")
+                }
+              >
+                <span
+                  className={
+                    "absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all " +
+                    (devMode ? "left-[18px]" : "left-0.5")
+                  }
+                />
+              </button>
+            </div>
+          </section>
+
+          {/* ---- API Keys ---- */}
+          <section>
+            <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
+              API Keys
+            </h3>
           <p className="text-[11px] leading-relaxed text-neutral-500">
             Keys are stored in <code className="font-mono">~/.aiia/keys.json</code> with 0600
             permissions. They never leave the Rust side; the JS layer only sees whether each
@@ -176,6 +240,7 @@ export function SettingsModal({ open, onClose }: Props) {
               </div>
             );
           })}
+          </section>
         </div>
       </div>
     </div>
