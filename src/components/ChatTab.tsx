@@ -26,7 +26,6 @@ import {
   parseProviderModelId,
 } from "../providers";
 import type { ChatMessage, ModelInfo } from "../providers/types";
-import { getAgent, type AgentId } from "../agents";
 
 const EXAMPLE_PROMPTS = [
   "What can you do?",
@@ -180,12 +179,7 @@ async function backendDeleteSession(id: string): Promise<void> {
   }
 }
 
-type ChatTabProps = {
-  agentId?: AgentId | null;
-};
-
-export function ChatTab({ agentId }: ChatTabProps = {}) {
-  const agent = getAgent(agentId);
+export function ChatTab() {
   const [sessions, setSessions] = useState<ChatSessionMeta[]>([]);
   const [active, setActive] = useState<ChatSession>(() => newDraft());
   const [models, setModels] = useState<ModelInfo[]>([]);
@@ -477,32 +471,6 @@ export function ChatTab({ agentId }: ChatTabProps = {}) {
 
       {/* Center column: thread + composer */}
       <section className="flex min-w-0 flex-1 flex-col">
-        {agent && (
-          <div className="flex items-center gap-3 border-b border-carbon-4 px-6 py-3">
-            <div
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-vellum-100"
-              style={{ border: "1px solid rgba(20, 17, 13, 0.18)" }}
-            >
-              <span
-                className="font-display text-base text-ink-900"
-                style={{ fontWeight: 500, lineHeight: 1 }}
-              >
-                {agent.initial}
-              </span>
-            </div>
-            <div className="flex flex-col">
-              <span
-                className="font-display text-lg tracking-[0.04em] text-ink-900"
-                style={{ fontWeight: 500, lineHeight: 1.1 }}
-              >
-                {agent.name}
-              </span>
-              <span className="font-body text-[12px] italic text-ink-600">
-                {agent.role}
-              </span>
-            </div>
-          </div>
-        )}
         <div
           ref={threadRef}
           onScroll={onScroll}
@@ -510,34 +478,24 @@ export function ChatTab({ agentId }: ChatTabProps = {}) {
         >
           {isEmpty ? (
             <div className="mx-auto flex h-full max-w-2xl flex-col items-center justify-center px-6 text-center">
-              {agent ? (
-                <div className="mb-6 font-body text-base italic text-ink-600">
-                  Say something to {agent.name}.
-                </div>
-              ) : (
-                <>
-                  <div className="mb-3 text-2xl text-text-2">
-                    What would you like to try?
-                  </div>
-                  <div className="mb-6 text-sm text-text-5">
-                    Your conversation stays on this machine unless you pick a cloud model.
-                  </div>
-                </>
-              )}
-              {!agent && (
-                <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-3">
-                  {EXAMPLE_PROMPTS.map((p) => (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => void send(p)}
-                      className="rounded-md border border-carbon-4 bg-carbon-1/50 px-3 py-2 text-left text-xs text-text-3 hover:border-carbon-7 hover:bg-carbon-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-amethyst-500"
-                    >
-                      {p}
-                    </button>
-                  ))}
-                </div>
-              )}
+              <div className="mb-3 text-2xl text-text-2">
+                What would you like to try?
+              </div>
+              <div className="mb-6 text-sm text-text-5">
+                Your conversation stays on this machine unless you pick a cloud model.
+              </div>
+              <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-3">
+                {EXAMPLE_PROMPTS.map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => void send(p)}
+                    className="rounded-md border border-carbon-4 bg-carbon-1/50 px-3 py-2 text-left text-xs text-text-3 hover:border-carbon-7 hover:bg-carbon-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-amethyst-500"
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
             </div>
           ) : (
             <div className="mx-auto max-w-3xl px-4 py-6">
