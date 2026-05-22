@@ -1,1 +1,129 @@
 @import "tailwindcss";
+@import "./styles/aiia-tokens.css";
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Tailwind v4 @theme — expose AIIA design tokens as Tailwind utilities.
+
+   The console has been re-skinned onto the BRAND surface (vellum / ink /
+   cinnabar — Penguin Classics-inspired, Claude.ai-quiet). To avoid touching
+   every component, we keep the existing utility names (`bg-void`,
+   `text-text-1`, `border-carbon-4`, `bg-amethyst-500`, …) but rebind their
+   underlying colour values onto the vellum/ink scale.
+
+   The names are now historical; they no longer describe colour. Renaming is
+   a follow-up pass once the vision is settled.
+   ─────────────────────────────────────────────────────────────────────── */
+@theme {
+  /* Fonts — body inherits EB Garamond so the whole product reads like a
+     book; display surfaces (agent names, headings) use Cormorant. */
+  --font-sans: "EB Garamond", "Adobe Caslon Pro", Garamond, "Georgia", serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "IBM Plex Mono", ui-monospace, monospace;
+  --font-display: "Cormorant Garamond", "ITC Galliard", "Adobe Caslon Pro", Garamond, serif;
+  --font-body: "EB Garamond", "Adobe Caslon Pro", Garamond, "Georgia", serif;
+
+  /* Brand surface — still available by name (bg-vellum-50, text-ink-900, …) */
+  --color-mint-50: #EAF5F1;
+  --color-mint-100: #C9E7DC;
+  --color-mint-200: #A6D8C6;
+  --color-mint-300: #7FC7B0;
+  --color-mint-400: #5BB69A;
+  --color-mint-500: #3F9A82;
+  --color-mint-600: #2E7867;
+
+  --color-ink-500: #807666;
+  --color-ink-600: #564D3F;
+  --color-ink-700: #3A332A;
+  --color-ink-800: #221E18;
+  --color-ink-900: #14110D;
+
+  --color-cinnabar-400: #D8543F;
+  --color-cinnabar-500: #C13B2A;
+  --color-cinnabar-600: #A12B1E;
+
+  --color-vellum-50: #FBF7EC;
+  --color-vellum-100: #F4ECD8;
+  --color-vellum-200: #E8DEC2;
+
+  /* ── Legacy "console" tokens, rebound onto vellum/ink ─────────────────
+     bg-void  → page background (vellum-50)
+     bg-carbon-1..7 → graduated warm-cream → ink tones (cards, borders,
+                     hovers — keep visual hierarchy without darkness)
+     text-text-1..7 → ink-900 → faint ink (primary → tertiary)
+     bg/text/border-amethyst-300..700 → ink scale (so any accent that was
+                     amethyst becomes warm-black; cinnabar is reserved for
+                     explicit single-spot use only) */
+  --color-void: #FBF7EC;
+  --color-carbon-1: #F6F0DE;
+  --color-carbon-2: #F1EAD0;
+  --color-carbon-3: #E8DEC2;
+  --color-carbon-4: #DCCFAA;
+  --color-carbon-5: #CFC093;
+  --color-carbon-6: #B5A77B;
+  --color-carbon-7: #807666;
+
+  --color-text-1: #14110D;
+  --color-text-2: #221E18;
+  --color-text-3: #3A332A;
+  --color-text-4: #564D3F;
+  --color-text-5: #807666;
+  --color-text-6: #978C7B;
+  --color-text-7: #B3A691;
+
+  --color-amethyst-300: #807666;
+  --color-amethyst-400: #3A332A;
+  --color-amethyst-500: #14110D;
+  --color-amethyst-600: #221E18;
+  --color-amethyst-700: #14110D;
+
+  /* Semantic / status — kept saturated so warnings/errors still read on
+     a cream surface. */
+  --color-status-healthy: #2E7867;
+  --color-status-attention: #B7791F;
+  --color-status-failing: #B91C1C;
+  --color-status-active: #1D4ED8;
+  --color-status-team: #0E7490;
+  --color-status-project: #047857;
+  --color-status-meta: #BE185D;
+  --color-status-agents: #4338CA;
+  --color-status-idle: #B5A77B;
+
+  /* Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  --tracking-tight: -0.01em;
+  --tracking-display: 0.04em;
+  --tracking-eyebrow: 0.25em;
+  --tracking-brand: 0.40em;
+}
+
+/* ── Base — vellum is now the default surface ─────────────────────────── */
+html {
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  background: var(--vellum-50);
+  color: var(--ink-800);
+  font-family: var(--font-body);
+  font-feature-settings: "kern", "liga", "onum";
+}
+
+/* Scrollbar — thin ink hairline on cream */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(20, 17, 13, 0.18); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(20, 17, 13, 0.32); }
+
+/* Pulsing dot — used by the cinnabar "start here" marker on the host. */
+@keyframes aiia-breathe {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.55; transform: scale(0.92); }
+}
+.dot-breathe { animation: aiia-breathe 2s ease-in-out infinite; }
