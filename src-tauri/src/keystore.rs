@@ -147,6 +147,70 @@ enum AuthSpec {
     Query(String, String),
 }
 
+/// Per-provider allowlist of acceptable HTTP host suffixes. `keystore_call`
+/// will refuse to attach the stored API key to a URL whose host doesn't end
+/// in one of these suffixes. Defense-in-depth: even if a JS-side bug or
+/// compromise builds a malicious URL, the Rust layer won't sign it.
+///
+/// Suffix matching (not exact) so subdomains under the provider's domain
+/// (e.g. regional endpoints) still work without re-deploying the app.
+/// To add a new provider, add the entry here and to `auth_for` above.
+fn allowed_hosts(provider: &str) -> &'static [&'static str] {
+    match provider {
+        "anthropic" => &["api.anthropic.com"],
+        "openai" => &["api.openai.com"],
+        "moonshot" => &["api.moonshot.ai", "api.moonshot.cn"],
+        "deepseek" => &["api.deepseek.com"],
+        // Google's GenAI endpoint is on generativelanguage.googleapis.com;
+        // *.googleapis.com is intentionally narrower than `*.google.com`
+        // to keep the blast radius small if a JS bug ever constructs a
+        // URL pointing at e.g. analytics.google.com.
+        "google" => &["generativelanguage.googleapis.com"],
+        _ => &[],
+    }
+}
+
+/// Validate that `url` is HTTPS and its host is in the provider's allowlist.
+/// Returns a descriptive error string on rejection (suitable for surfacing
+/// to the JS layer).
+fn check_url_allowed(provider: &str, url: &str) -> Result<(), String> {
+    let parsed = reqwest::Url::parse(url).map_err(|e| format!("invalid url: {}", e))?;
+
+    // Block file:, data:, custom: schemes — only HTTPS to remote APIs.
+    if parsed.scheme() != "https" {
+        return Err(format!(
+            "keystore_call rejects non-https url scheme '{}'; only https is allowed",
+            parsed.scheme()
+        ));
+    }
+
+    let host = parsed
+        .host_str()
+        .ok_or_else(|| "url has no host".to_string())?;
+
+    let allowlist = allowed_hosts(provider);
+    if allowlist.is_empty() {
+        return Err(format!(
+            "keystore_call has no host allowlist configured for provider '{}'",
+            provider
+        ));
+    }
+
+    let host_lower = host.to_lowercase();
+    let allowed = allowlist
+        .iter()
+        .any(|suffix| host_lower == *suffix || host_lower.ends_with(&format!(".{}", suffix)));
+
+    if !allowed {
+        return Err(format!(
+            "keystore_call refuses to attach the {} api key to host '{}' (not in allowlist {:?})",
+            provider, host, allowlist
+        ));
+    }
+
+    Ok(())
+}
+
 /// Tracks in-flight requests so JS can cancel them.
 pub struct InflightCancel {
     pub map: Mutex<HashMap<String, oneshot::Sender<()>>>,
@@ -170,6 +234,15 @@ pub async fn keystore_call(
     body: Value,
     headers: Option<HashMap<String, String>>,
 ) -> Result<(), String> {
+    // Reject obviously-malicious URLs before doing anything with the key.
+    // This is defense-in-depth: even if the JS layer is compromised or has
+    // a bug that builds a URL pointing at attacker-controlled infrastructure,
+    // the Rust layer won't sign it with the user's API key.
+    if let Err(e) = check_url_allowed(&provider, &url) {
+        emit_error(&app, &request_id, e.clone());
+        return Err(e);
+    }
+
     let keys = load_keys().unwrap_or_default();
     let api_key = match keys.get(&provider) {
         Some(v) if !v.is_empty() => v.clone(),
@@ -320,4 +393,80 @@ fn urlencoding_minimal(s: &str) -> String {
         }
     }
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn anthropic_official_host_is_allowed() {
+        assert!(check_url_allowed("anthropic", "https://api.anthropic.com/v1/messages").is_ok());
+    }
+
+    #[test]
+    fn openai_official_host_is_allowed() {
+        assert!(check_url_allowed("openai", "https://api.openai.com/v1/chat/completions").is_ok());
+    }
+
+    #[test]
+    fn google_genai_host_is_allowed() {
+        assert!(check_url_allowed(
+            "google",
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:streamGenerateContent"
+        )
+        .is_ok());
+    }
+
+    #[test]
+    fn subdomains_of_allowed_host_are_allowed() {
+        // e.g. regional or beta endpoint — still under the provider's domain.
+        assert!(
+            check_url_allowed("anthropic", "https://eu.api.anthropic.com/v1/messages").is_ok()
+        );
+    }
+
+    #[test]
+    fn http_scheme_is_rejected() {
+        let err = check_url_allowed("anthropic", "http://api.anthropic.com/v1/messages")
+            .expect_err("http should be rejected");
+        assert!(err.contains("https"));
+    }
+
+    #[test]
+    fn file_scheme_is_rejected() {
+        let err = check_url_allowed("anthropic", "file:///etc/passwd")
+            .expect_err("file scheme should be rejected");
+        assert!(err.contains("https") || err.contains("scheme"));
+    }
+
+    #[test]
+    fn attacker_host_is_rejected() {
+        let err = check_url_allowed("anthropic", "https://attacker.com/log?k=")
+            .expect_err("foreign host should be rejected");
+        assert!(err.contains("attacker.com"));
+        assert!(err.contains("allowlist"));
+    }
+
+    #[test]
+    fn google_main_domain_is_rejected() {
+        // Narrower than *.google.com — we only want generativelanguage.googleapis.com.
+        let err = check_url_allowed("google", "https://analytics.google.com/log")
+            .expect_err("google.com is not in the genai allowlist");
+        assert!(err.contains("allowlist"));
+    }
+
+    #[test]
+    fn unknown_provider_is_rejected() {
+        let err = check_url_allowed("evil-provider", "https://api.openai.com/v1/chat/completions")
+            .expect_err("unknown provider should have empty allowlist");
+        assert!(err.contains("allowlist") || err.contains("provider"));
+    }
+
+    #[test]
+    fn malformed_url_is_rejected() {
+        let err = check_url_allowed("anthropic", "not a url")
+            .expect_err("malformed url should be rejected");
+        assert!(err.contains("invalid url") || err.contains("scheme"));
+    }
 }
