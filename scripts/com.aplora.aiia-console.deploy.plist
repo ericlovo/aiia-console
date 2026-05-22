@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.aplora.aiia-console.deploy</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>-lc</string>
+        <string>"$HOME/code/aiia-console/scripts/mini-deploy.sh"</string>
+    </array>
+
+    <!-- Poll every 2 minutes. -->
+    <key>StartInterval</key>
+    <integer>120</integer>
+
+    <!-- Run once at load so a fresh install picks up immediately. -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/aiia-console-deploy.out</string>
+
+    <key>StandardErrorPath</key>
+    <string>/tmp/aiia-console-deploy.err</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <!-- Homebrew + system PATH; needed for git, npm, cargo, etc. -->
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    </dict>
+</dict>
+</plist>
