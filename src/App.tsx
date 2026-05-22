@@ -3,16 +3,19 @@ import { useEffect, useState } from "react";
 import { SettingsModal } from "./components/SettingsModal";
 import { ChatTab } from "./components/ChatTab";
 import { MemoryTab } from "./components/MemoryTab";
+import { JournalTab } from "./components/JournalTab";
 import "./App.css";
 
 const ACTIVE_VIEW_KEY = "aiia-console-active-tab";
 
-type View = "chat" | "memory";
+type View = "chat" | "memory" | "journal";
 
 function readActiveView(): View {
   if (typeof window === "undefined") return "chat";
   const raw = window.localStorage.getItem(ACTIVE_VIEW_KEY);
-  return raw === "memory" ? "memory" : "chat";
+  if (raw === "memory") return "memory";
+  if (raw === "journal") return "journal";
+  return "chat";
 }
 
 function App() {
@@ -42,6 +45,13 @@ function App() {
         </button>
         <div className="flex items-center gap-1">
           <CornerButton
+            label="Journal"
+            active={view === "journal"}
+            onClick={() => setView(view === "journal" ? "chat" : "journal")}
+          >
+            ✒
+          </CornerButton>
+          <CornerButton
             label="Memory"
             active={view === "memory"}
             onClick={() => setView(view === "memory" ? "chat" : "memory")}
@@ -66,6 +76,7 @@ function App() {
       {/* View body */}
       <div className="flex min-h-0 flex-1">
         {view === "chat" && <ChatTab />}
+        {view === "journal" && <JournalTab />}
         {view === "memory" && <MemoryTab />}
       </div>
     </div>

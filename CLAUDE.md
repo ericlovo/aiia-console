@@ -88,7 +88,7 @@ If a real lint step is wanted later, `biome` is a good fit (single binary, fast,
 
 ## Testing
 
-Live: **14 unit tests** in `src/providers/index.test.ts` covering provider:model id parsing, formatting, and normalization. Run with `npm test`.
+Live: **9 unit tests** in `src/providers/index.test.ts` covering provider:model id parsing, formatting, and normalization. Run with `npm test`.
 
 Good targets for future tests (none written yet):
 - `src/brain/client.ts` with mocked `fetch` — covers the SQLite-fallback contract

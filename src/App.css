@@ -127,3 +127,16 @@ body {
   50%      { opacity: 0.55; transform: scale(0.92); }
 }
 .dot-breathe { animation: aiia-breathe 2s ease-in-out infinite; }
+
+/* Journal waveform bar — vertical bars that breathe at varying cadences.
+   Each bar takes its delay + duration from inline style for organic motion. */
+@keyframes aiia-wave {
+  0%, 100% { transform: scaleY(0.18); }
+  50%      { transform: scaleY(1); }
+}
+.waveform-bar {
+  display: inline-block;
+  height: 100%;
+  transform-origin: bottom;
+  animation: aiia-wave 700ms ease-in-out infinite;
+}
