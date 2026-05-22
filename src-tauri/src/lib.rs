@@ -9,7 +9,12 @@ use std::path::PathBuf;
 use serde::Serialize;
 use serde_json::Value;
 
+mod brain;
 mod keystore;
+use brain::{
+    brain_forget, brain_get_memory, brain_list_memories, brain_remember, brain_search,
+    brain_status,
+};
 use keystore::{
     keystore_call, keystore_call_cancel, keystore_delete_key, keystore_get_keys,
     keystore_set_key, InflightCancel,
@@ -257,6 +262,160 @@ fn replace_or_append_section(existing: &str, section: &str, new_block: &str) -> 
     }
 }
 
+// ---------- chat sessions ----------
+//
+// Each session is stored as a single JSON file at
+// ~/AIIA/Chats/<uuid>.json. IDs are validated to be nanoid/uuid-shaped (only
+// URL-safe alphanumerics, dashes, and underscores; max 64 chars) — never a
+// raw caller-supplied path. Deletes are soft: the file is moved to
+// ~/.Trash/aiia-console-deleted-chats/.
+
+#[derive(serde::Serialize, serde::Deserialize)]
+struct StoredChatMessage {
+    role: String,
+    content: String,
+    timestamp: String,
+    #[serde(rename = "providerModelId", skip_serializing_if = "Option::is_none")]
+    provider_model_id: Option<String>,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+struct ChatSession {
+    id: String,
+    title: String,
+    created: String,
+    updated: String,
+    messages: Vec<StoredChatMessage>,
+}
+
+#[derive(serde::Serialize)]
+struct ChatSessionMeta {
+    id: String,
+    title: String,
+    created: String,
+    updated: String,
+}
+
+fn validate_session_id(id: &str) -> Result<(), String> {
+    if id.is_empty() || id.len() > 64 {
+        return Err("invalid session id length".into());
+    }
+    if !id
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+    {
+        return Err("invalid characters in session id".into());
+    }
+    Ok(())
+}
+
+fn chats_dir() -> Result<PathBuf, String> {
+    let dir = aiia_root()?.join("Chats");
+    fs::create_dir_all(&dir).map_err(|e| format!("mkdir failed: {}", e))?;
+    Ok(dir)
+}
+
+fn chat_file(id: &str) -> Result<PathBuf, String> {
+    validate_session_id(id)?;
+    Ok(chats_dir()?.join(format!("{}.json", id)))
+}
+
+#[tauri::command]
+fn chat_list_sessions() -> Result<Vec<ChatSessionMeta>, String> {
+    let dir = chats_dir()?;
+    let mut out: Vec<ChatSessionMeta> = Vec::new();
+    for entry in fs::read_dir(&dir).map_err(|e| format!("read_dir failed: {}", e))? {
+        let entry = match entry {
+            Ok(e) => e,
+            Err(_) => continue,
+        };
+        let name = entry.file_name().to_string_lossy().to_string();
+        if !name.ends_with(".json") {
+            continue;
+        }
+        let path = entry.path();
+        let raw = match fs::read_to_string(&path) {
+            Ok(r) => r,
+            Err(_) => continue,
+        };
+        // Parse minimally — only the metadata fields.
+        let parsed: Value = match serde_json::from_str(&raw) {
+            Ok(v) => v,
+            Err(_) => continue,
+        };
+        let id = parsed.get("id").and_then(|v| v.as_str()).unwrap_or("");
+        if validate_session_id(id).is_err() {
+            continue;
+        }
+        let title = parsed
+            .get("title")
+            .and_then(|v| v.as_str())
+            .unwrap_or("Untitled")
+            .to_string();
+        let created = parsed
+            .get("created")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let updated = parsed
+            .get("updated")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        out.push(ChatSessionMeta {
+            id: id.to_string(),
+            title,
+            created,
+            updated,
+        });
+    }
+    out.sort_by(|a, b| b.updated.cmp(&a.updated));
+    Ok(out)
+}
+
+#[tauri::command]
+fn chat_load_session(id: String) -> Result<ChatSession, String> {
+    let path = chat_file(&id)?;
+    if !path.exists() {
+        return Err(format!("chat not found: {}", id));
+    }
+    let raw = fs::read_to_string(&path).map_err(|e| format!("read failed: {}", e))?;
+    serde_json::from_str(&raw).map_err(|e| format!("parse failed: {}", e))
+}
+
+#[tauri::command]
+fn chat_save_session(session: ChatSession) -> Result<String, String> {
+    validate_session_id(&session.id)?;
+    let path = chat_file(&session.id)?;
+    let tmp = path.with_extension("json.tmp");
+    let body = serde_json::to_string_pretty(&session)
+        .map_err(|e| format!("serialize failed: {}", e))?;
+    fs::write(&tmp, body).map_err(|e| format!("tmp write failed: {}", e))?;
+    fs::rename(&tmp, &path).map_err(|e| format!("rename failed: {}", e))?;
+    Ok(path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+fn chat_delete_session(id: String) -> Result<String, String> {
+    let path = chat_file(&id)?;
+    if !path.exists() {
+        return Err(format!("chat not found: {}", id));
+    }
+    let trash = home()?
+        .join(".Trash")
+        .join("aiia-console-deleted-chats");
+    fs::create_dir_all(&trash).map_err(|e| format!("mkdir trash failed: {}", e))?;
+    // Use a timestamped filename in the trash so deleting/re-creating the
+    // same id doesn't collide.
+    let stamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or(0);
+    let dest = trash.join(format!("{}-{}.json", stamp, id));
+    fs::rename(&path, &dest).map_err(|e| format!("trash rename failed: {}", e))?;
+    Ok(dest.to_string_lossy().to_string())
+}
+
 // ---------- gateway config (read-only) ----------
 
 #[derive(Serialize)]
@@ -352,11 +511,21 @@ pub fn run() {
             vault_write,
             gateway_config,
             ollama_models,
+            chat_list_sessions,
+            chat_load_session,
+            chat_save_session,
+            chat_delete_session,
             keystore_get_keys,
             keystore_set_key,
             keystore_delete_key,
             keystore_call,
             keystore_call_cancel,
+            brain_status,
+            brain_list_memories,
+            brain_get_memory,
+            brain_remember,
+            brain_forget,
+            brain_search,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -392,4 +561,13 @@ mod tests {
         assert!(vault_path("").is_err());
     }
 
+    #[test]
+    fn session_id_validation() {
+        assert!(validate_session_id("abc123_-XYZ").is_ok());
+        assert!(validate_session_id("").is_err());
+        assert!(validate_session_id("../etc/passwd").is_err());
+        assert!(validate_session_id("contains/slash").is_err());
+        assert!(validate_session_id("has space").is_err());
+        assert!(validate_session_id(&"a".repeat(65)).is_err());
+    }
 }
