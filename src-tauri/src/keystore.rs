@@ -81,7 +81,7 @@ fn save_keys(map: &HashMap<String, String>) -> Result<(), String> {
 pub fn keystore_get_keys() -> Result<HashMap<String, bool>, String> {
     let keys = load_keys()?;
     let mut out = HashMap::new();
-    for k in ["anthropic", "openai", "moonshot", "deepseek", "google"] {
+    for k in ["anthropic", "openai", "moonshot", "deepseek", "google", "groq"] {
         out.insert(
             k.to_string(),
             keys.get(k).map(|v| !v.is_empty()).unwrap_or(false),
@@ -166,6 +166,9 @@ fn allowed_hosts(provider: &str) -> &'static [&'static str] {
         // to keep the blast radius small if a JS bug ever constructs a
         // URL pointing at e.g. analytics.google.com.
         "google" => &["generativelanguage.googleapis.com"],
+        // Groq serves both chat completions (OpenAI-compatible) and
+        // Whisper transcriptions from api.groq.com.
+        "groq" => &["api.groq.com"],
         _ => &[],
     }
 }
@@ -395,6 +398,173 @@ fn urlencoding_minimal(s: &str) -> String {
     out
 }
 
+// ---- audio transcription (Whisper-style multipart) ----
+//
+// keystore_call streams JSON-bodied requests (SSE/NDJSON responses). Whisper
+// needs a multipart file upload and returns a single JSON document. This is
+// a separate command tailored for that shape.
+//
+// Currently supports Groq's OpenAI-compatible /audio/transcriptions endpoint.
+// Other providers (OpenAI Whisper, Deepgram) drop in with one match arm each.
+
+#[derive(Deserialize, Debug)]
+#[allow(dead_code)]
+pub struct TranscribeArgs {
+    pub provider: String,
+    pub model: String,
+    /// Raw audio bytes (browser MediaRecorder output, base64-encoded by the JS
+    /// side because Tauri's JSON IPC can't carry raw binary).
+    pub audio_base64: String,
+    /// MIME type of the audio (e.g. "audio/webm", "audio/mp4").
+    pub content_type: String,
+    /// Optional ISO-639-1 language hint (e.g. "en").
+    pub language: Option<String>,
+}
+
+fn transcription_url(provider: &str) -> Result<&'static str, String> {
+    match provider {
+        "groq" => Ok("https://api.groq.com/openai/v1/audio/transcriptions"),
+        // OpenAI Whisper proper:
+        // "openai" => Ok("https://api.openai.com/v1/audio/transcriptions"),
+        _ => Err(format!("transcription not supported for provider '{}'", provider)),
+    }
+}
+
+fn extension_for(content_type: &str) -> &'static str {
+    match content_type {
+        "audio/webm" => "webm",
+        "audio/ogg" => "ogg",
+        "audio/mp4" | "audio/m4a" => "m4a",
+        "audio/mpeg" | "audio/mp3" => "mp3",
+        "audio/wav" | "audio/wave" | "audio/x-wav" => "wav",
+        "audio/flac" => "flac",
+        _ => "bin",
+    }
+}
+
+#[tauri::command]
+pub async fn keystore_transcribe(args: TranscribeArgs) -> Result<String, String> {
+    let url = transcription_url(&args.provider)?;
+    check_url_allowed(&args.provider, url)?;
+
+    let keys = load_keys().unwrap_or_default();
+    let api_key = match keys.get(&args.provider) {
+        Some(v) if !v.is_empty() => v.clone(),
+        _ => return Err(format!("no api key configured for {}", args.provider)),
+    };
+
+    let bytes = base64_decode_standard(&args.audio_base64)
+        .map_err(|e| format!("audio_base64 decode: {}", e))?;
+    let filename = format!("recording.{}", extension_for(&args.content_type));
+
+    let mut form = reqwest::multipart::Form::new()
+        .text("model", args.model.clone())
+        .text("response_format", "json".to_string());
+    if let Some(lang) = args.language.as_deref() {
+        if !lang.is_empty() {
+            form = form.text("language", lang.to_string());
+        }
+    }
+    let file_part = reqwest::multipart::Part::bytes(bytes)
+        .file_name(filename)
+        .mime_str(&args.content_type)
+        .map_err(|e| format!("invalid mime: {}", e))?;
+    form = form.part("file", file_part);
+
+    let client = reqwest::Client::builder()
+        .build()
+        .map_err(|e| format!("http client init: {}", e))?;
+
+    let resp = client
+        .post(url)
+        .header("authorization", format!("Bearer {}", api_key))
+        .multipart(form)
+        .send()
+        .await
+        .map_err(|e| format!("http send: {}", e))?;
+
+    let status = resp.status();
+    let text = resp.text().await.unwrap_or_default();
+    if !status.is_success() {
+        return Err(format!(
+            "HTTP {}: {}",
+            status,
+            text.chars().take(400).collect::<String>()
+        ));
+    }
+
+    // Both Groq and OpenAI return {"text": "..."} when response_format=json.
+    let parsed: Value = serde_json::from_str(&text)
+        .map_err(|e| format!("transcription json parse: {} (body: {})", e, &text[..text.len().min(200)]))?;
+    let transcript = parsed
+        .get("text")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| "transcription response missing 'text' field".to_string())?;
+    Ok(transcript.to_string())
+}
+
+/// Standard-alphabet base64 decoder. Avoids pulling in the `base64` crate for
+/// the one place we need it. Tolerates whitespace and trailing '=' padding.
+fn base64_decode_standard(s: &str) -> Result<Vec<u8>, String> {
+    const TABLE: [i8; 128] = {
+        let mut t = [-1i8; 128];
+        let mut i = 0u8;
+        while i < 26 {
+            t[(b'A' + i) as usize] = i as i8;
+            t[(b'a' + i) as usize] = (i + 26) as i8;
+            i += 1;
+        }
+        let mut j = 0u8;
+        while j < 10 {
+            t[(b'0' + j) as usize] = (j + 52) as i8;
+            j += 1;
+        }
+        t[b'+' as usize] = 62;
+        t[b'/' as usize] = 63;
+        t
+    };
+
+    let mut buf = [0u8; 4];
+    let mut nbuf = 0usize;
+    let mut out = Vec::with_capacity(s.len() * 3 / 4);
+    for byte in s.bytes() {
+        if byte.is_ascii_whitespace() {
+            continue;
+        }
+        if byte == b'=' {
+            break;
+        }
+        if byte >= 128 {
+            return Err(format!("invalid byte: 0x{:02x}", byte));
+        }
+        let v = TABLE[byte as usize];
+        if v < 0 {
+            return Err(format!("invalid base64 byte: 0x{:02x}", byte));
+        }
+        buf[nbuf] = v as u8;
+        nbuf += 1;
+        if nbuf == 4 {
+            out.push((buf[0] << 2) | (buf[1] >> 4));
+            out.push((buf[1] << 4) | (buf[2] >> 2));
+            out.push((buf[2] << 6) | buf[3]);
+            nbuf = 0;
+        }
+    }
+    match nbuf {
+        0 => Ok(out),
+        2 => {
+            out.push((buf[0] << 2) | (buf[1] >> 4));
+            Ok(out)
+        }
+        3 => {
+            out.push((buf[0] << 2) | (buf[1] >> 4));
+            out.push((buf[1] << 4) | (buf[2] >> 2));
+            Ok(out)
+        }
+        _ => Err("truncated base64".into()),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -468,5 +638,39 @@ mod tests {
         let err = check_url_allowed("anthropic", "not a url")
             .expect_err("malformed url should be rejected");
         assert!(err.contains("invalid url") || err.contains("scheme"));
+    }
+
+    #[test]
+    fn groq_official_host_is_allowed() {
+        assert!(check_url_allowed("groq", "https://api.groq.com/openai/v1/chat/completions").is_ok());
+        assert!(check_url_allowed("groq", "https://api.groq.com/openai/v1/audio/transcriptions").is_ok());
+    }
+
+    #[test]
+    fn groq_foreign_host_is_rejected() {
+        let err = check_url_allowed("groq", "https://attacker.com/log")
+            .expect_err("foreign host should be rejected");
+        assert!(err.contains("allowlist"));
+    }
+
+    #[test]
+    fn base64_decode_basic() {
+        // "AIIA" → 4 bytes
+        let decoded = base64_decode_standard("QUlJQQ==").unwrap();
+        assert_eq!(decoded, b"AIIA");
+    }
+
+    #[test]
+    fn base64_decode_no_padding() {
+        let decoded = base64_decode_standard("QUlJQQ").unwrap();
+        assert_eq!(decoded, b"AIIA");
+    }
+
+    #[test]
+    fn base64_decode_with_whitespace() {
+        // Embedded whitespace should be tolerated (FormData encoders sometimes
+        // insert newlines).
+        let decoded = base64_decode_standard("QUlJ\nQQ==").unwrap();
+        assert_eq!(decoded, b"AIIA");
     }
 }

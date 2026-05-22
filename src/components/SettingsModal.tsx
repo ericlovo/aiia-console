@@ -24,6 +24,7 @@ const PROVIDERS: ProviderRow[] = [
   { id: "moonshot", label: "Moonshot (Kimi)" },
   { id: "deepseek", label: "DeepSeek" },
   { id: "google", label: "Google (Gemini)" },
+  { id: "groq", label: "Groq (Llama + Whisper STT)" },
 ];
 
 export function SettingsModal({ open, onClose }: Props) {

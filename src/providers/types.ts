@@ -13,6 +13,7 @@ export type ProviderId =
   | "moonshot"
   | "deepseek"
   | "google"
+  | "groq"
   | "mlx";
 
 export interface ProviderInfo {

@@ -17,7 +17,7 @@ use brain::{
 };
 use keystore::{
     keystore_call, keystore_call_cancel, keystore_delete_key, keystore_get_keys,
-    keystore_set_key, InflightCancel,
+    keystore_set_key, keystore_transcribe, InflightCancel,
 };
 
 // ---------- shared path helpers ----------
@@ -26,8 +26,49 @@ pub fn home() -> Result<PathBuf, String> {
     dirs::home_dir().ok_or_else(|| "could not resolve home dir".to_string())
 }
 
+/// Expand a leading `~/` into the home directory. Used for env-supplied paths.
+fn expand_tilde(s: &str) -> PathBuf {
+    if let Some(stripped) = s.strip_prefix("~/") {
+        if let Ok(h) = home() {
+            return h.join(stripped);
+        }
+    }
+    if s == "~" {
+        if let Ok(h) = home() {
+            return h;
+        }
+    }
+    PathBuf::from(s)
+}
+
+/// Resolve the vault root. Mirrors local_brain/vault_paths.py in the AIIA
+/// Brain so a single OBSIDIAN_VAULT_DIR setting routes both the brain and the
+/// console at the same Obsidian vault.
+///
+/// Order:
+///   1. OBSIDIAN_VAULT_DIR env var (preferred)
+///   2. ~/Documents/AIIA  (standard Obsidian-friendly location, if it exists)
+///   3. ~/AIIA            (legacy console default, if it exists — backwards
+///                         compatible for users who set this up before the
+///                         brain's vault layer existed)
+///   4. ~/.aiia/vault     (hidden fallback, created lazily by writers)
 fn aiia_root() -> Result<PathBuf, String> {
-    Ok(home()?.join("AIIA"))
+    if let Ok(v) = std::env::var("OBSIDIAN_VAULT_DIR") {
+        let trimmed = v.trim();
+        if !trimmed.is_empty() {
+            return Ok(expand_tilde(trimmed));
+        }
+    }
+    let h = home()?;
+    let docs = h.join("Documents").join("AIIA");
+    if docs.exists() {
+        return Ok(docs);
+    }
+    let legacy = h.join("AIIA");
+    if legacy.exists() {
+        return Ok(legacy);
+    }
+    Ok(h.join(".aiia").join("vault"))
 }
 
 /// Resolve a vault-relative path and guarantee it stays inside ~/AIIA.
@@ -45,6 +86,10 @@ fn vault_path(rel: &str) -> Result<PathBuf, String> {
     }
     let trimmed = rel.strip_prefix("AIIA/").unwrap_or(rel);
     let root = aiia_root()?;
+    // Lazy-create the vault root so the hidden-fallback case (~/.aiia/vault)
+    // and a fresh OBSIDIAN_VAULT_DIR self-bootstrap on first write.
+    fs::create_dir_all(&root)
+        .map_err(|e| format!("mkdir vault root failed: {} ({})", root.display(), e))?;
     let joined = root.join(trimmed);
 
     // Canonicalize when possible to catch symlink escapes; fall back when the
@@ -520,6 +565,7 @@ pub fn run() {
             keystore_delete_key,
             keystore_call,
             keystore_call_cancel,
+            keystore_transcribe,
             brain_status,
             brain_list_memories,
             brain_get_memory,

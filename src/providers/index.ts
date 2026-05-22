@@ -9,6 +9,7 @@ import { OpenAIProvider } from "./openai";
 import { MoonshotProvider } from "./moonshot";
 import { DeepSeekProvider } from "./deepseek";
 import { GoogleProvider } from "./google";
+import { GroqProvider } from "./groq";
 
 const REGISTRY: Record<ProviderId, Provider | null> = {
   ollama: new OllamaProvider(),
@@ -17,6 +18,7 @@ const REGISTRY: Record<ProviderId, Provider | null> = {
   moonshot: new MoonshotProvider(),
   deepseek: new DeepSeekProvider(),
   google: new GoogleProvider(),
+  groq: new GroqProvider(),
   // MLX is intentionally not wired up yet.
   mlx: null,
 };
