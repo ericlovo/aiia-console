@@ -506,23 +506,16 @@ pub async fn keystore_transcribe(args: TranscribeArgs) -> Result<String, String>
 /// Standard-alphabet base64 decoder. Avoids pulling in the `base64` crate for
 /// the one place we need it. Tolerates whitespace and trailing '=' padding.
 fn base64_decode_standard(s: &str) -> Result<Vec<u8>, String> {
-    const TABLE: [i8; 128] = {
-        let mut t = [-1i8; 128];
-        let mut i = 0u8;
-        while i < 26 {
-            t[(b'A' + i) as usize] = i as i8;
-            t[(b'a' + i) as usize] = (i + 26) as i8;
-            i += 1;
+    fn val(c: u8) -> Option<u8> {
+        match c {
+            b'A'..=b'Z' => Some(c - b'A'),
+            b'a'..=b'z' => Some(c - b'a' + 26),
+            b'0'..=b'9' => Some(c - b'0' + 52),
+            b'+' => Some(62),
+            b'/' => Some(63),
+            _ => None,
         }
-        let mut j = 0u8;
-        while j < 10 {
-            t[(b'0' + j) as usize] = (j + 52) as i8;
-            j += 1;
-        }
-        t[b'+' as usize] = 62;
-        t[b'/' as usize] = 63;
-        t
-    };
+    }
 
     let mut buf = [0u8; 4];
     let mut nbuf = 0usize;
@@ -534,14 +527,11 @@ fn base64_decode_standard(s: &str) -> Result<Vec<u8>, String> {
         if byte == b'=' {
             break;
         }
-        if byte >= 128 {
-            return Err(format!("invalid byte: 0x{:02x}", byte));
-        }
-        let v = TABLE[byte as usize];
-        if v < 0 {
-            return Err(format!("invalid base64 byte: 0x{:02x}", byte));
-        }
-        buf[nbuf] = v as u8;
+        let v = match val(byte) {
+            Some(v) => v,
+            None => return Err(format!("invalid base64 byte: 0x{:02x}", byte)),
+        };
+        buf[nbuf] = v;
         nbuf += 1;
         if nbuf == 4 {
             out.push((buf[0] << 2) | (buf[1] >> 4));
