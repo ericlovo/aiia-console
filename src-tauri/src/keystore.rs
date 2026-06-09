@@ -23,10 +23,8 @@ use serde_json::Value;
 use tauri::{AppHandle, Emitter};
 use tokio::sync::oneshot;
 
-use crate::home;
-
 fn aiia_dir() -> Result<PathBuf, String> {
-    Ok(home()?.join(".aiia"))
+    Ok(crate::aiia_config_dir())
 }
 
 fn keys_path() -> Result<PathBuf, String> {

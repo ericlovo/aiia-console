@@ -24,16 +24,15 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-use crate::home;
-
 const DEFAULT_BRAIN_URL: &str = "http://127.0.0.1:8100";
 const BRAIN_TIMEOUT_SECS: u64 = 3;
 
 /// Non-secret console settings (the Brain URL) live here, separate from the
-/// secret keystore (~/.aiia/keys.json). The Brain API key, being a secret, is
-/// stored in the keystore under the id "brain".
+/// secret keystore (keys.json). The Brain API key, being a secret, is stored in
+/// the keystore under the id "brain". Both share the platform config dir
+/// (~/.aiia on desktop, the app sandbox on mobile — see crate::aiia_config_dir).
 fn console_config_path() -> Result<PathBuf, String> {
-    Ok(home()?.join(".aiia").join("console.json"))
+    Ok(crate::aiia_config_dir().join("console.json"))
 }
 
 /// The Brain URL the user has saved in Settings, if any (trimmed, non-empty).
@@ -270,8 +269,8 @@ pub fn brain_get_url() -> Result<String, String> {
 /// are preserved.
 #[tauri::command]
 pub fn brain_set_url(url: String) -> Result<(), String> {
-    let dir = home()?.join(".aiia");
-    fs::create_dir_all(&dir).map_err(|e| format!("mkdir ~/.aiia failed: {}", e))?;
+    let dir = crate::aiia_config_dir();
+    fs::create_dir_all(&dir).map_err(|e| format!("mkdir config dir failed: {}", e))?;
     let path = dir.join("console.json");
 
     let mut obj = fs::read_to_string(&path)

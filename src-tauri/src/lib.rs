@@ -5,6 +5,7 @@
 
 use std::fs;
 use std::path::PathBuf;
+use std::sync::OnceLock;
 
 use serde::Serialize;
 use serde_json::Value;
@@ -24,6 +25,28 @@ use keystore::{
 
 pub fn home() -> Result<PathBuf, String> {
     dirs::home_dir().ok_or_else(|| "could not resolve home dir".to_string())
+}
+
+// Base directory for AIIA console config + secrets (keys.json, console.json).
+//
+// Desktop resolves to ~/.aiia (unchanged). Mobile (iOS/iPadOS, Android) has no
+// ~/.aiia, so `run()`'s setup hook sets this to the app's sandbox data dir at
+// startup. Reads fall back to ~/.aiia when unset, keeping desktop behavior
+// byte-identical and tests working without a Tauri app handle.
+static AIIA_CONFIG_DIR: OnceLock<PathBuf> = OnceLock::new();
+
+pub fn aiia_config_dir() -> PathBuf {
+    if let Some(p) = AIIA_CONFIG_DIR.get() {
+        return p.clone();
+    }
+    home()
+        .map(|h| h.join(".aiia"))
+        .unwrap_or_else(|_| PathBuf::from(".aiia"))
+}
+
+#[cfg(mobile)]
+fn set_aiia_config_dir(p: PathBuf) {
+    let _ = AIIA_CONFIG_DIR.set(p);
 }
 
 /// Expand a leading `~/` into the home directory. Used for env-supplied paths.
@@ -548,6 +571,18 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .manage(InflightCancel::new())
+        .setup(|_app| {
+            // On mobile there is no ~/.aiia; resolve a sandbox-writable base
+            // dir for config + secrets. Desktop keeps using ~/.aiia.
+            #[cfg(mobile)]
+            {
+                use tauri::Manager;
+                if let Ok(dir) = _app.path().app_data_dir() {
+                    set_aiia_config_dir(dir.join("aiia"));
+                }
+            }
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             save_flow,
             load_flow,
