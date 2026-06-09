@@ -22,24 +22,24 @@ export type MemoryCategory = (typeof MEMORY_CATEGORIES)[number];
 
 // Per-category hue for the memory graph. Values are passed to react-force-graph
 // as raw CSS color strings (the graph runs on canvas, so CSS custom properties
-// can't be used directly). Where a design-system semantic token exists with the
-// same color, the matching token name is noted alongside.
+// can't be used directly).
 //
-// Categories without a clean design-token mapping (decisions, wip, meta) use
-// hand-picked values. `decisions` aligns to amethyst-500 — the console's brand
-// accent — since decisions are identity-defining. `wip` stays orange (no
-// design-token equivalent; "needs work" sits between attention and failing).
-// `meta` is a neutral mid-gray (no design-token equivalent in the dark scale).
+// Palette: "manuscript pigments" — muted, mid-dark colours drawn from the
+// vellum/ink brand world so the nodes read as ink-and-pigment on a cream
+// surface rather than neon-on-black. They stay distinct enough to separate
+// clusters at a glance and remain legible as small dots in the sidebar/detail.
+// `decisions` gets brand cinnabar (#C13B2A) since decisions are identity-
+// defining; `meta` is ink-500 (the warm neutral) as the quietest cluster.
 export const CATEGORY_COLORS: Record<MemoryCategory, string> = {
-  decisions: "#8B5CF6",  // amethyst-500
-  patterns:  "#3B82F6",  // status-active
-  lessons:   "#10B981",  // status-project
-  team:      "#F59E0B",  // status-attention
-  project:   "#06B6D4",  // status-team
-  agents:    "#EC4899",  // status-meta
-  sessions:  "#6366F1",  // status-agents
-  wip:       "#F97316",  // (no design token — kept)
-  meta:      "#71717A",  // (no design token — kept)
+  decisions: "#C13B2A",  // cinnabar-500 (brand accent)
+  patterns:  "#2E5A8C",  // lapis blue
+  lessons:   "#2E7867",  // verdigris (mint-600)
+  team:      "#B7791F",  // ochre / gold
+  project:   "#155E75",  // deep teal
+  agents:    "#9D4E8C",  // murex purple
+  sessions:  "#5B4B8A",  // indigo
+  wip:       "#C2410C",  // burnt sienna
+  meta:      "#807666",  // ink-500 (warm neutral)
 };
 
 export type Memory = {

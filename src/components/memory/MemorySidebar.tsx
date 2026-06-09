@@ -126,7 +126,7 @@ export function MemorySidebar(props: Props) {
             <CategoryRow
               label="All"
               count={total}
-              color="#a3a3a3"
+              color="#3A332A"
               active={activeFilter === "all"}
               onClick={() => onFilterChange("all")}
             />

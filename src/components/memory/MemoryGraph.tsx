@@ -162,13 +162,13 @@ export function MemoryGraph(props: Props) {
       width={width}
       height={height}
       graphData={filtered}
-      backgroundColor="#0a0a0a"
+      backgroundColor="#FBF7EC"
       nodeRelSize={4}
       nodeLabel={(node) => {
         const n = node as GraphNode;
         const truncated =
           n.fact.length > 80 ? n.fact.slice(0, 80) + "…" : n.fact;
-        return `<div style="max-width:280px;padding:6px 8px;background:#171717;border:1px solid #404040;border-radius:6px;color:#e5e5e5;font-size:12px;font-family:ui-sans-serif,system-ui;line-height:1.4"><div style="text-transform:uppercase;font-size:10px;letter-spacing:0.06em;color:${CATEGORY_COLORS[n.category]};margin-bottom:4px">${n.category}</div>${escapeHtml(truncated)}</div>`;
+        return `<div style="max-width:280px;padding:6px 9px;background:#14110D;border:1px solid #3A332A;border-radius:6px;color:#FBF7EC;font-size:12px;font-family:'EB Garamond','Georgia',serif;line-height:1.45;box-shadow:0 4px 14px rgba(20,17,13,0.18)"><div style="text-transform:uppercase;font-size:10px;letter-spacing:0.08em;color:${CATEGORY_COLORS[n.category]};margin-bottom:3px">${n.category}</div>${escapeHtml(truncated)}</div>`;
       }}
       nodeVal={(node) => (node as GraphNode).size}
       nodeColor={(node) => {
@@ -183,11 +183,11 @@ export function MemoryGraph(props: Props) {
         if (!n.selected || n.x === undefined || n.y === undefined) return;
         ctx.beginPath();
         ctx.arc(n.x, n.y, n.size + 3, 0, 2 * Math.PI, false);
-        ctx.strokeStyle = "#fafafa";
-        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = "#14110D";
+        ctx.lineWidth = 2;
         ctx.stroke();
       }}
-      linkColor={() => "rgba(115,115,115,0.35)"}
+      linkColor={() => "rgba(20,17,13,0.18)"}
       linkWidth={1}
       onNodeClick={(node) => {
         const n = node as GraphNode;
