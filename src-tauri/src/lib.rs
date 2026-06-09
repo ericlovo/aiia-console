@@ -12,8 +12,8 @@ use serde_json::Value;
 mod brain;
 mod keystore;
 use brain::{
-    brain_forget, brain_get_memory, brain_list_memories, brain_remember, brain_search,
-    brain_status,
+    brain_forget, brain_get_memory, brain_get_url, brain_list_memories, brain_remember,
+    brain_search, brain_set_url, brain_status,
 };
 use keystore::{
     keystore_call, keystore_call_cancel, keystore_delete_key, keystore_get_keys,
@@ -572,6 +572,8 @@ pub fn run() {
             brain_remember,
             brain_forget,
             brain_search,
+            brain_get_url,
+            brain_set_url,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -77,11 +77,22 @@ fn save_keys(map: &HashMap<String, String>) -> Result<(), String> {
 
 // ---- public commands ----
 
+/// Read a stored secret by id (e.g. a provider key, or the "brain" key used to
+/// authenticate to a remote AIIA Brain). Crate-internal: the plaintext value is
+/// never returned to the JS layer — only `keystore_get_keys` (presence) is.
+pub(crate) fn get_key(id: &str) -> Option<String> {
+    let keys = load_keys().ok()?;
+    match keys.get(id) {
+        Some(v) if !v.is_empty() => Some(v.clone()),
+        _ => None,
+    }
+}
+
 #[tauri::command]
 pub fn keystore_get_keys() -> Result<HashMap<String, bool>, String> {
     let keys = load_keys()?;
     let mut out = HashMap::new();
-    for k in ["anthropic", "openai", "moonshot", "deepseek", "google", "groq"] {
+    for k in ["anthropic", "openai", "moonshot", "deepseek", "google", "groq", "brain"] {
         out.insert(
             k.to_string(),
             keys.get(k).map(|v| !v.is_empty()).unwrap_or(false),

@@ -17,16 +17,58 @@
 //     coupled to a single Brain schema version — we pass through whatever the
 //     Brain returns and let the TS side bind to the fields it actually uses.
 
+use std::fs;
+use std::path::PathBuf;
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
+use crate::home;
+
 const DEFAULT_BRAIN_URL: &str = "http://127.0.0.1:8100";
 const BRAIN_TIMEOUT_SECS: u64 = 3;
 
+/// Non-secret console settings (the Brain URL) live here, separate from the
+/// secret keystore (~/.aiia/keys.json). The Brain API key, being a secret, is
+/// stored in the keystore under the id "brain".
+fn console_config_path() -> Result<PathBuf, String> {
+    Ok(home()?.join(".aiia").join("console.json"))
+}
+
+/// The Brain URL the user has saved in Settings, if any (trimmed, non-empty).
+fn saved_brain_url() -> Option<String> {
+    let raw = fs::read_to_string(console_config_path().ok()?).ok()?;
+    let v: Value = serde_json::from_str(&raw).ok()?;
+    v.get("brain_url")
+        .and_then(|x| x.as_str())
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+}
+
+/// Resolve the effective Brain base URL. Precedence: saved Settings value,
+/// then the AIIA_BRAIN_URL env override, then the localhost default. Any
+/// trailing slash is stripped so callers can concatenate "/v1/..." paths.
 fn brain_base_url() -> String {
-    std::env::var("AIIA_BRAIN_URL").unwrap_or_else(|_| DEFAULT_BRAIN_URL.to_string())
+    let url = saved_brain_url()
+        .or_else(|| std::env::var("AIIA_BRAIN_URL").ok())
+        .unwrap_or_else(|| DEFAULT_BRAIN_URL.to_string());
+    url.trim_end_matches('/').to_string()
+}
+
+/// The key used to authenticate to a remote Brain (sent as `x-api-key`), if the
+/// user has configured one. A local Brain with no LOCAL_BRAIN_API_KEY set
+/// ignores the header, so sending it is always safe.
+fn brain_api_key() -> Option<String> {
+    crate::keystore::get_key("brain")
+}
+
+/// Attach the Brain API key header to a request if one is configured.
+fn with_key(req: reqwest::RequestBuilder) -> reqwest::RequestBuilder {
+    match brain_api_key() {
+        Some(k) => req.header("x-api-key", k),
+        None => req,
+    }
 }
 
 fn brain_client() -> Result<reqwest::Client, String> {
@@ -45,7 +87,7 @@ async fn brain_get_optional(path: &str) -> Result<Option<Value>, String> {
         Ok(c) => c,
         Err(_) => return Ok(None),
     };
-    let resp = match client.get(&url).send().await {
+    let resp = match with_key(client.get(&url)).send().await {
         Ok(r) => r,
         Err(_) => return Ok(None),
     };
@@ -149,8 +191,7 @@ pub async fn brain_remember(
     };
     let url = format!("{}/v1/aiia/remember", brain_base_url());
     let client = brain_client()?;
-    let resp = client
-        .post(&url)
+    let resp = with_key(client.post(&url))
         .json(&body)
         .send()
         .await
@@ -176,8 +217,7 @@ pub async fn brain_forget(id: String) -> Result<bool, String> {
         urlencode_path_segment(&id)
     );
     let client = brain_client()?;
-    let resp = client
-        .delete(&url)
+    let resp = with_key(client.delete(&url))
         .send()
         .await
         .map_err(|e| format!("brain unreachable: {}", e))?;
@@ -203,7 +243,7 @@ pub async fn brain_search(
         Ok(c) => c,
         Err(_) => return Ok(None),
     };
-    let resp = match client.post(&url).json(&body).send().await {
+    let resp = match with_key(client.post(&url)).json(&body).send().await {
         Ok(r) => r,
         Err(_) => return Ok(None),
     };
@@ -214,6 +254,43 @@ pub async fn brain_search(
         Ok(v) => Ok(Some(v)),
         Err(_) => Ok(None),
     }
+}
+
+// ---------- connection settings ----------
+
+/// Return the effective Brain base URL (saved value, env override, or default)
+/// so the Settings UI can show what the app will actually talk to.
+#[tauri::command]
+pub fn brain_get_url() -> Result<String, String> {
+    Ok(brain_base_url())
+}
+
+/// Persist the Brain base URL into ~/.aiia/console.json. An empty string clears
+/// the saved value (falling back to the env/default). Other keys in the file
+/// are preserved.
+#[tauri::command]
+pub fn brain_set_url(url: String) -> Result<(), String> {
+    let dir = home()?.join(".aiia");
+    fs::create_dir_all(&dir).map_err(|e| format!("mkdir ~/.aiia failed: {}", e))?;
+    let path = dir.join("console.json");
+
+    let mut obj = fs::read_to_string(&path)
+        .ok()
+        .and_then(|raw| serde_json::from_str::<Value>(&raw).ok())
+        .and_then(|v| v.as_object().cloned())
+        .unwrap_or_default();
+
+    let trimmed = url.trim();
+    if trimmed.is_empty() {
+        obj.remove("brain_url");
+    } else {
+        obj.insert("brain_url".into(), Value::String(trimmed.to_string()));
+    }
+
+    let body = serde_json::to_string_pretty(&Value::Object(obj))
+        .map_err(|e| format!("serialize console.json: {}", e))?;
+    fs::write(&path, body).map_err(|e| format!("write console.json: {}", e))?;
+    Ok(())
 }
 
 // Minimal percent-encoding for query string values. We only need to handle a
