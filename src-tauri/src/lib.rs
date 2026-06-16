@@ -12,6 +12,7 @@ use serde_json::Value;
 
 mod brain;
 mod keystore;
+mod loops;
 use brain::{
     brain_forget, brain_get_memory, brain_get_url, brain_list_memories, brain_remember,
     brain_search, brain_set_url, brain_status,
@@ -19,6 +20,10 @@ use brain::{
 use keystore::{
     keystore_call, keystore_call_cancel, keystore_delete_key, keystore_get_keys,
     keystore_set_key, keystore_transcribe, InflightCancel,
+};
+use loops::{
+    loop_adapters_available, loop_belief, loop_create, loop_escalations, loop_generate_cases,
+    loop_is_running, loop_launch, loop_list_instances, loop_status, loop_stop, loop_tail_log,
 };
 
 // ---------- shared path helpers ----------
@@ -609,6 +614,17 @@ pub fn run() {
             brain_search,
             brain_get_url,
             brain_set_url,
+            loop_list_instances,
+            loop_status,
+            loop_belief,
+            loop_escalations,
+            loop_launch,
+            loop_is_running,
+            loop_stop,
+            loop_create,
+            loop_generate_cases,
+            loop_adapters_available,
+            loop_tail_log,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

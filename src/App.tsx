@@ -4,17 +4,19 @@ import { SettingsModal } from "./components/SettingsModal";
 import { ChatTab } from "./components/ChatTab";
 import { MemoryTab } from "./components/MemoryTab";
 import { JournalTab } from "./components/JournalTab";
+import { ResearchTab } from "./components/ResearchTab";
 import "./App.css";
 
 const ACTIVE_VIEW_KEY = "aiia-console-active-tab";
 
-type View = "chat" | "memory" | "journal";
+type View = "chat" | "memory" | "journal" | "research";
 
 function readActiveView(): View {
   if (typeof window === "undefined") return "chat";
   const raw = window.localStorage.getItem(ACTIVE_VIEW_KEY);
   if (raw === "memory") return "memory";
   if (raw === "journal") return "journal";
+  if (raw === "research") return "research";
   return "chat";
 }
 
@@ -44,6 +46,13 @@ function App() {
           </span>
         </button>
         <div className="flex items-center gap-1">
+          <CornerButton
+            label="Research"
+            active={view === "research"}
+            onClick={() => setView(view === "research" ? "chat" : "research")}
+          >
+            ⟳
+          </CornerButton>
           <CornerButton
             label="Journal"
             active={view === "journal"}
@@ -78,6 +87,7 @@ function App() {
         {view === "chat" && <ChatTab />}
         {view === "journal" && <JournalTab />}
         {view === "memory" && <MemoryTab />}
+        {view === "research" && <ResearchTab />}
       </div>
     </div>
   );
