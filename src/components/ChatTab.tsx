@@ -28,6 +28,8 @@ import {
 import type { ChatMessage, ModelInfo } from "../providers/types";
 import { AIIA_SYSTEM_PROMPT } from "../persona";
 import { ttsSupported, speak, cancelSpeech, primeVoices } from "../voice/tts";
+import { pingOllama } from "../providers/ollama";
+import { openUrl } from "@tauri-apps/plugin-opener";
 
 const EXAMPLE_PROMPTS = [
   "What can you do?",
@@ -186,6 +188,7 @@ export function ChatTab() {
   const [active, setActive] = useState<ChatSession>(() => newDraft());
   const [models, setModels] = useState<ModelInfo[]>([]);
   const [model, setModel] = useState<string | null>(null);
+  const [ollamaUp, setOllamaUp] = useState<boolean | null>(null);
   const [streaming, setStreaming] = useState(false);
   const [attachedFile, setAttachedFile] = useState<string | null>(null);
   const [composerError, setComposerError] = useState<string | null>(null);
@@ -232,9 +235,11 @@ export function ChatTab() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Warm the system voice list so Aya can speak without a first-click delay.
+  // Warm the system voice list so Aya can speak without a first-click delay,
+  // and probe whether the Ollama daemon is reachable (for local-model guidance).
   useEffect(() => {
     primeVoices();
+    void pingOllama().then(setOllamaUp);
   }, []);
 
   // Restart any in-flight stream when switching sessions.
@@ -522,6 +527,9 @@ export function ChatTab() {
                   </button>
                 ))}
               </div>
+              {modelOptions.local.length === 0 && (
+                <OllamaGuidance up={ollamaUp} hasRemote={modelOptions.remote.length > 0} />
+              )}
             </div>
           ) : (
             <div className="mx-auto max-w-3xl px-4 py-6">
@@ -766,6 +774,42 @@ function ThinkingIndicator() {
       <span className="text-xs">
         Aya is thinking{secs >= 3 ? ` · ${secs}s` : ""}
       </span>
+    </div>
+  );
+}
+
+// Guidance shown when there are no local models — distinguishes "Ollama
+// isn't running" (offer the install) from "running but no models pulled".
+// Memory still works regardless; this is only about local chat models.
+function OllamaGuidance({ up, hasRemote }: { up: boolean | null; hasRemote: boolean }) {
+  if (up === null) return null; // still probing
+  return (
+    <div className="mt-6 w-full rounded-lg border border-carbon-4 bg-carbon-1 px-4 py-3 text-left text-xs leading-relaxed text-text-3">
+      {up === false ? (
+        <>
+          <p className="mb-2">
+            <span className="font-medium text-text-1">Memory's ready</span> — but you
+            need a model to chat. Install <span className="font-medium">Ollama</span> to
+            run models locally (free, private)
+            {hasRemote ? "." : ", or add a cloud key in Settings."}
+          </p>
+          <button
+            type="button"
+            onClick={() => void openUrl("https://ollama.com/download")}
+            className="rounded-md bg-cinnabar-500 px-3 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-cinnabar-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-cinnabar-400"
+          >
+            Install Ollama →
+          </button>
+        </>
+      ) : (
+        <p>
+          Ollama's running but has no models yet. Pull one in Terminal —{" "}
+          <code className="rounded bg-carbon-3 px-1 py-0.5 font-mono text-[11px] text-text-2">
+            ollama pull gemma3
+          </code>{" "}
+          — then reopen Chat.
+        </p>
+      )}
     </div>
   );
 }

@@ -14,6 +14,21 @@ import type {
 
 const OLLAMA_URL = "http://127.0.0.1:11434";
 
+// Reachability probe for the Ollama daemon, independent of whether any models
+// are pulled. Lets the UI tell "Ollama isn't installed/running" apart from
+// "Ollama is running but has no models yet".
+export async function pingOllama(): Promise<boolean> {
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 1500);
+    const resp = await fetch(`${OLLAMA_URL}/api/tags`, { signal: ctrl.signal });
+    clearTimeout(timer);
+    return resp.ok;
+  } catch {
+    return false;
+  }
+}
+
 export class OllamaProvider implements Provider {
   info: ProviderInfo = {
     id: "ollama",
