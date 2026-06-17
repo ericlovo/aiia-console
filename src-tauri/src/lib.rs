@@ -575,6 +575,10 @@ async fn ollama_models() -> Result<Vec<String>, String> {
 // we can terminate it cleanly on app exit instead of orphaning it.
 struct BrainSidecar(std::sync::Mutex<Option<tauri_plugin_shell::process::CommandChild>>);
 
+// Handle to the bundled Ollama runtime (the model engine), spawned directly
+// from the app's resources so local chat works offline on first open.
+struct OllamaSidecar(std::sync::Mutex<Option<std::process::Child>>);
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -582,6 +586,7 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .manage(InflightCancel::new())
         .manage(BrainSidecar(std::sync::Mutex::new(None)))
+        .manage(OllamaSidecar(std::sync::Mutex::new(None)))
         .setup(|app| {
             // On mobile there is no ~/.aiia; resolve a sandbox-writable base
             // dir for config + secrets. Desktop keeps using ~/.aiia.
@@ -602,22 +607,58 @@ pub fn run() {
                 use tauri::Manager;
                 use tauri_plugin_shell::ShellExt;
 
-                let brain_up = "127.0.0.1:8100"
-                    .parse::<std::net::SocketAddr>()
-                    .ok()
-                    .and_then(|addr| {
-                        std::net::TcpStream::connect_timeout(
-                            &addr,
-                            std::time::Duration::from_millis(400),
-                        )
+                let port_open = |addr: &str| {
+                    addr.parse::<std::net::SocketAddr>()
                         .ok()
-                    })
-                    .is_some();
+                        .and_then(|a| {
+                            std::net::TcpStream::connect_timeout(
+                                &a,
+                                std::time::Duration::from_millis(400),
+                            )
+                            .ok()
+                        })
+                        .is_some()
+                };
+
+                // Start the bundled Ollama runtime (model engine) unless one is
+                // already serving :11434. Bundled as resources (runtime dir +
+                // read-only model dir) and spawned directly, so local chat works
+                // fully offline on first open. In dev the resources are absent,
+                // so this no-ops and the existing Ollama is used.
+                if port_open("127.0.0.1:11434") {
+                    eprintln!("[aiia] Ollama already on :11434 — using it");
+                } else if let Ok(res) = app.path().resource_dir() {
+                    let bin = res.join("ollama-runtime/ollama");
+                    if bin.exists() {
+                        match std::process::Command::new(&bin)
+                            .arg("serve")
+                            .current_dir(res.join("ollama-runtime"))
+                            .env("OLLAMA_HOST", "127.0.0.1:11434")
+                            .env("OLLAMA_MODELS", res.join("ollama-models"))
+                            .spawn()
+                        {
+                            Ok(child) => {
+                                eprintln!("[aiia] spawned bundled Ollama");
+                                app.state::<OllamaSidecar>().0.lock().unwrap().replace(child);
+                            }
+                            Err(e) => eprintln!("[aiia] could not start bundled Ollama: {e}"),
+                        }
+                    }
+                }
+
+                let brain_up = port_open("127.0.0.1:8100");
 
                 if brain_up {
                     eprintln!("[aiia] Brain already on :8100 — using it; not spawning sidecar");
                 } else {
-                    match app.shell().sidecar("aiia-brain").and_then(|c| c.spawn()) {
+                    // Point the Brain at the baked-in model so its LLM tasks
+                    // (journal distill, memory extraction) use what's bundled.
+                    let cmd = app.shell().sidecar("aiia-brain").map(|c| {
+                        c.env("LOCAL_ROUTING_MODEL", "gemma3:4b")
+                            .env("LOCAL_TASK_MODEL", "gemma3:4b")
+                            .env("LOCAL_DEEP_MODEL", "gemma3:4b")
+                    });
+                    match cmd.and_then(|c| c.spawn()) {
                         Ok((_rx, child)) => {
                             eprintln!("[aiia] spawned bundled Brain sidecar");
                             app.state::<BrainSidecar>().0.lock().unwrap().replace(child);
@@ -675,6 +716,11 @@ pub fn run() {
                 use tauri::Manager;
                 if let Some(child) =
                     app_handle.state::<BrainSidecar>().0.lock().unwrap().take()
+                {
+                    let _ = child.kill();
+                }
+                if let Some(mut child) =
+                    app_handle.state::<OllamaSidecar>().0.lock().unwrap().take()
                 {
                     let _ = child.kill();
                 }
