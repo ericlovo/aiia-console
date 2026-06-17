@@ -178,10 +178,10 @@ export function SettingsModal({ open, onClose }: Props) {
       onClick={onClose}
     >
       <div
-        className="w-[520px] max-w-[92vw] rounded-lg border border-carbon-4 bg-void shadow-xl"
+        className="flex max-h-[88vh] w-[520px] max-w-[92vw] flex-col rounded-lg border border-carbon-4 bg-void shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-carbon-4 px-4 py-3">
+        <div className="flex shrink-0 items-center justify-between border-b border-carbon-4 px-4 py-3">
           <h2 className="text-sm font-semibold text-text-1">
             Settings
           </h2>
@@ -201,7 +201,7 @@ export function SettingsModal({ open, onClose }: Props) {
           </div>
         )}
 
-        <div className="space-y-4 p-4">
+        <div className="space-y-4 overflow-y-auto p-4">
           {/* ---- Connection ---- */}
           <section>
             <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-text-4">
@@ -326,10 +326,10 @@ export function SettingsModal({ open, onClose }: Props) {
               <select
                 id="theme-select"
                 disabled
-                value="dark"
+                value="light"
                 className="rounded border border-carbon-4 bg-void px-2 py-1 text-[11px] text-text-4 disabled:cursor-not-allowed"
               >
-                <option value="dark">Dark (only option for now)</option>
+                <option value="light">Light (only option for now)</option>
               </select>
             </div>
           </section>
