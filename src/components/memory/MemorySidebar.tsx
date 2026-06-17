@@ -76,12 +76,19 @@ export function MemorySidebar(props: Props) {
             aria-label="Refresh memories"
             className="flex h-7 w-7 items-center justify-center rounded-md border border-carbon-6 bg-carbon-1 text-sm text-text-3 hover:border-carbon-7 hover:text-text-1 disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-amethyst-500"
           >
-            <span
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.8}
+              strokeLinecap="round"
+              strokeLinejoin="round"
               aria-hidden
-              className={refreshing ? "inline-block animate-spin" : ""}
+              className={"h-3.5 w-3.5 " + (refreshing ? "animate-spin" : "")}
             >
-              ⟳
-            </span>
+              <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+              <path d="M21 3v6h-6" />
+            </svg>
           </button>
         </div>
       </div>

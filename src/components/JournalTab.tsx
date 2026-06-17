@@ -224,7 +224,7 @@ export function JournalTab() {
 
     if (!configured.groq) {
       setError(
-        "Groq API key isn't configured yet — open Settings (⚙) to enable voice, or just type your entry instead.",
+        "Groq API key isn't configured yet — open Settings to enable voice, or just type your entry instead.",
       );
       setState("error");
       return;
@@ -362,7 +362,7 @@ function IdleSurface({
         </p>
       ) : (
         <p className="max-w-sm text-center text-sm text-text-5">
-          Voice needs a Groq key (Settings ⚙). Or just write below — no key
+          Voice needs a Groq key (in Settings). Or just write below — no key
           required.
         </p>
       )}
