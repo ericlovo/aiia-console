@@ -173,7 +173,12 @@ export function MemoryGraph(props: Props) {
       nodeVal={(node) => (node as GraphNode).size}
       nodeColor={(node) => {
         const n = node as GraphNode;
-        return CATEGORY_COLORS[n.category];
+        const hex = CATEGORY_COLORS[n.category].replace("#", "");
+        const r = parseInt(hex.slice(0, 2), 16);
+        const g = parseInt(hex.slice(2, 4), 16);
+        const b = parseInt(hex.slice(4, 6), 16);
+        // Translucent fill so dense, overlapping clusters stay readable.
+        return `rgba(${r}, ${g}, ${b}, 0.45)`;
       }}
       nodeCanvasObjectMode={(node) =>
         (node as GraphNode).selected ? "after" : undefined

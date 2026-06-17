@@ -59,6 +59,7 @@ export function JournalTab() {
   const [savedPath, setSavedPath] = useState<string | null>(null);
   const [subStatus, setSubStatus] = useState<string>("");
   const [configured, setConfigured] = useState<Record<string, boolean>>({});
+  const [draft, setDraft] = useState("");
   const prompt = useMemo(pickPrompt, []);
 
   const startedAtRef = useRef<Date | null>(null);
@@ -110,7 +111,80 @@ export function JournalTab() {
     }
   }, [recorder, state]);
 
-  // ── Wrap session: stop → transcribe → save raw → distill → save final ─
+  // ── Shared finish: save raw → distill → save final ────────────────────
+  // Used by both the voice wrap (after transcription) and typed entries.
+  // `source` records how the text arrived ("groq" | "typed").
+  const finishEntry = useCallback(
+    async (text: string, startedAt: Date, duration: number, source: string) => {
+      if (!text.trim()) {
+        setError(
+          source === "typed"
+            ? "Nothing to save yet — type an entry first."
+            : "Whisper returned an empty transcript — did the mic pick up audio?",
+        );
+        setState("error");
+        return;
+      }
+
+      // Durably save the raw entry BEFORE attempting distillation, so a
+      // crash or LLM failure can't lose the session.
+      const filename = sessionFilename(startedAt);
+      const fallback = fallbackMarkdown({
+        transcript: text,
+        startedAt,
+        durationSeconds: duration,
+        transcriptionProvider: source,
+      });
+      try {
+        setSubStatus("Saving entry…");
+        const result = await writeSessionFile(filename, fallback);
+        setSavedPath(result.path);
+        setMarkdown(fallback);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        setError(`Couldn't write to vault: ${msg}`);
+        setState("error");
+        return;
+      }
+
+      // Pick a distillation provider from configured keys.
+      const distillTarget = pickDistillProvider(configured);
+      if (!distillTarget) {
+        setSubStatus("");
+        setState("distilled");
+        return;
+      }
+
+      // Distill — stream into the markdown view as it lands.
+      try {
+        setSubStatus(`Distilling with ${distillTarget.provider}…`);
+        let accum = "";
+        const distilled = await distill(
+          { transcript: text, startedAt, durationSeconds: duration, transcriptionProvider: source },
+          {
+            provider: distillTarget.provider,
+            model: distillTarget.model,
+            onDelta: (delta) => {
+              accum += delta;
+              setMarkdown(accum);
+            },
+          },
+        );
+        const finalResult = await writeSessionFile(filename, distilled);
+        setSavedPath(finalResult.path);
+        setMarkdown(distilled);
+        setSubStatus("");
+        setState("distilled");
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        setError(`Distillation failed: ${msg}. Raw entry saved at ${savedPath ?? filename}.`);
+        setState("error");
+      }
+    },
+    [configured, savedPath],
+  );
+
+  // ── Wrap voice session: stop → transcribe → finish ────────────────────
   const wrapSession = useCallback(async () => {
     if (state !== "recording") return;
     setState("wrapping");
@@ -121,8 +195,6 @@ export function JournalTab() {
       setSubStatus("Saving audio…");
       const stopped = await recorder.stop();
       blob = stopped.blob;
-      // Refine duration from the wall clock — covers the slight delay
-      // between space-press and the recorder actually flushing.
       duration = Math.max(
         elapsed,
         Math.floor((Date.now() - startedAt.getTime()) / 1000),
@@ -136,7 +208,7 @@ export function JournalTab() {
 
     if (!configured.groq) {
       setError(
-        "Groq API key isn't configured yet — open Settings (⚙) and paste your Groq key to enable voice journaling.",
+        "Groq API key isn't configured yet — open Settings (⚙) to enable voice, or just type your entry instead.",
       );
       setState("error");
       return;
@@ -153,74 +225,21 @@ export function JournalTab() {
       return;
     }
 
-    if (!text.trim()) {
-      setError("Whisper returned an empty transcript — did the mic pick up audio?");
-      setState("error");
-      return;
-    }
+    await finishEntry(text, startedAt, duration, "groq");
+  }, [configured, elapsed, recorder, state, finishEntry]);
 
-    // Durably save the raw transcript BEFORE attempting distillation, so a
-    // crash or LLM failure can't lose the session.
-    const filename = sessionFilename(startedAt);
-    const fallback = fallbackMarkdown({
-      transcript: text,
-      startedAt,
-      durationSeconds: duration,
-      transcriptionProvider: "groq",
-    });
-    try {
-      setSubStatus("Saving raw transcript…");
-      const result = await writeSessionFile(filename, fallback);
-      setSavedPath(result.path);
-      setMarkdown(fallback);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      setError(`Couldn't write to vault: ${msg}`);
-      setState("error");
-      return;
-    }
-
-    // Pick a distillation provider from configured keys.
-    const distillTarget = pickDistillProvider(configured);
-    if (!distillTarget) {
-      setSubStatus("");
-      setState("distilled");
-      return;
-    }
-
-    // Distill — stream into the markdown view as it lands.
-    try {
-      setSubStatus(`Distilling with ${distillTarget.provider}…`);
-      let accum = "";
-      const distilled = await distill(
-        {
-          transcript: text,
-          startedAt,
-          durationSeconds: duration,
-          transcriptionProvider: "groq",
-        },
-        {
-          provider: distillTarget.provider,
-          model: distillTarget.model,
-          onDelta: (delta) => {
-            accum += delta;
-            setMarkdown(accum);
-          },
-        },
-      );
-      // Overwrite the raw-transcript file with the distilled version.
-      const finalResult = await writeSessionFile(filename, distilled);
-      setSavedPath(finalResult.path);
-      setMarkdown(distilled);
-      setSubStatus("");
-      setState("distilled");
-    } catch (e) {
-      // Distill failed but raw transcript is safe on disk.
-      const msg = e instanceof Error ? e.message : String(e);
-      setError(`Distillation failed: ${msg}. Raw transcript saved at ${savedPath ?? filename}.`);
-      setState("error");
-    }
-  }, [configured, elapsed, recorder, savedPath, state]);
+  // ── Typed entry: skip the mic entirely, go straight to finish ─────────
+  const submitTyped = useCallback(async () => {
+    if (state !== "idle" || !draft.trim()) return;
+    setError(null);
+    setMarkdown("");
+    setSavedPath(null);
+    setElapsed(0);
+    setState("wrapping");
+    const text = draft;
+    setDraft("");
+    await finishEntry(text, new Date(), 0, "typed");
+  }, [draft, state, finishEntry]);
 
   // ── Spacebar PTT ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -264,6 +283,9 @@ export function JournalTab() {
           prompt={prompt}
           onBegin={() => void beginRecording()}
           groqConfigured={Boolean(configured.groq)}
+          draft={draft}
+          setDraft={setDraft}
+          onSubmitTyped={() => void submitTyped()}
         />
       )}
       {state === "recording" && (
@@ -295,13 +317,19 @@ function IdleSurface({
   prompt,
   onBegin,
   groqConfigured,
+  draft,
+  setDraft,
+  onSubmitTyped,
 }: {
   prompt: string;
   onBegin: () => void;
   groqConfigured: boolean;
+  draft: string;
+  setDraft: (v: string) => void;
+  onSubmitTyped: () => void;
 }) {
   return (
-    <div className="flex flex-col items-center gap-10">
+    <div className="flex w-full max-w-md flex-col items-center gap-8">
       <p className="max-w-md text-center font-display text-3xl leading-snug text-ink-900">
         {prompt}
       </p>
@@ -314,14 +342,44 @@ function IdleSurface({
           <kbd className="rounded border border-carbon-4 bg-carbon-1 px-1.5 py-0.5 font-mono text-xs">
             space
           </kbd>{" "}
-          to begin · click the orb · wrap when ready
+          to speak · or write it below
         </p>
       ) : (
-        <p className="max-w-sm text-center text-sm text-cinnabar-600">
-          Add your Groq API key in Settings (⚙) to enable voice journaling.
-          Free tier covers ~hours of Whisper transcription per day.
+        <p className="max-w-sm text-center text-sm text-text-5">
+          Voice needs a Groq key (Settings ⚙). Or just write below — no key
+          required.
         </p>
       )}
+
+      {/* Type instead — works with or without a transcription key */}
+      <div className="flex w-full items-center gap-3 text-text-6">
+        <span className="h-px flex-1 bg-carbon-4" />
+        <span className="text-[11px] uppercase tracking-wider">or write it</span>
+        <span className="h-px flex-1 bg-carbon-4" />
+      </div>
+
+      <textarea
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+            e.preventDefault();
+            onSubmitTyped();
+          }
+        }}
+        placeholder="Type your entry…  ⌘/Ctrl + Enter to save"
+        rows={4}
+        className="w-full resize-none rounded-lg border border-carbon-4 bg-carbon-1 px-4 py-3 text-sm leading-relaxed text-ink-800 placeholder:text-text-6 focus:border-carbon-7 focus:outline-none"
+      />
+
+      <button
+        type="button"
+        onClick={onSubmitTyped}
+        disabled={!draft.trim()}
+        className="rounded-md bg-cinnabar-500 px-5 py-2 font-display text-sm tracking-wider text-white transition-colors hover:bg-cinnabar-600 disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-cinnabar-400"
+      >
+        Save entry
+      </button>
     </div>
   );
 }

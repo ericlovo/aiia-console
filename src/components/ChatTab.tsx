@@ -26,6 +26,7 @@ import {
   parseProviderModelId,
 } from "../providers";
 import type { ChatMessage, ModelInfo } from "../providers/types";
+import { AIIA_SYSTEM_PROMPT } from "../persona";
 
 const EXAMPLE_PROMPTS = [
   "What can you do?",
@@ -325,9 +326,14 @@ export function ChatTab() {
       const { provider: providerId, model: modelId } = parseProviderModelId(model);
       const provider = getProvider(providerId);
 
-      const history: ChatMessage[] = next.messages
-        .filter((m) => m !== assistantMsg)
-        .map((m) => ({ role: m.role, content: m.content }));
+      // Prepend the AIIA persona so the base model speaks as Aya. Injected
+      // at send time only — not stored in the session's message history.
+      const history: ChatMessage[] = [
+        { role: "system", content: AIIA_SYSTEM_PROMPT },
+        ...next.messages
+          .filter((m) => m !== assistantMsg)
+          .map((m) => ({ role: m.role, content: m.content })),
+      ];
 
       const controller = new AbortController();
       abortRef.current = controller;
