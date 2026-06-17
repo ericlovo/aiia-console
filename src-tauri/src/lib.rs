@@ -571,19 +571,59 @@ async fn ollama_models() -> Result<Vec<String>, String> {
 
 // ---------- entry ----------
 
+// Handle to the bundled Brain sidecar process (when this app spawned it), so
+// we can terminate it cleanly on app exit instead of orphaning it.
+struct BrainSidecar(std::sync::Mutex<Option<tauri_plugin_shell::process::CommandChild>>);
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_shell::init())
         .manage(InflightCancel::new())
-        .setup(|_app| {
+        .manage(BrainSidecar(std::sync::Mutex::new(None)))
+        .setup(|app| {
             // On mobile there is no ~/.aiia; resolve a sandbox-writable base
             // dir for config + secrets. Desktop keeps using ~/.aiia.
             #[cfg(mobile)]
             {
                 use tauri::Manager;
-                if let Ok(dir) = _app.path().app_data_dir() {
+                if let Ok(dir) = app.path().app_data_dir() {
                     set_aiia_config_dir(dir.join("aiia"));
+                }
+            }
+
+            // Desktop: spawn the bundled Brain sidecar so memory works with
+            // zero config. Probe first — if a Brain is already serving on
+            // :8100 (a dev/launchd Brain, or one the user runs), use it and
+            // don't spawn a second one fighting for the port.
+            #[cfg(desktop)]
+            {
+                use tauri::Manager;
+                use tauri_plugin_shell::ShellExt;
+
+                let brain_up = "127.0.0.1:8100"
+                    .parse::<std::net::SocketAddr>()
+                    .ok()
+                    .and_then(|addr| {
+                        std::net::TcpStream::connect_timeout(
+                            &addr,
+                            std::time::Duration::from_millis(400),
+                        )
+                        .ok()
+                    })
+                    .is_some();
+
+                if brain_up {
+                    eprintln!("[aiia] Brain already on :8100 — using it; not spawning sidecar");
+                } else {
+                    match app.shell().sidecar("aiia-brain").and_then(|c| c.spawn()) {
+                        Ok((_rx, child)) => {
+                            eprintln!("[aiia] spawned bundled Brain sidecar");
+                            app.state::<BrainSidecar>().0.lock().unwrap().replace(child);
+                        }
+                        Err(e) => eprintln!("[aiia] could not start bundled Brain: {e}"),
+                    }
                 }
             }
             Ok(())
@@ -626,8 +666,20 @@ pub fn run() {
             loop_adapters_available,
             loop_tail_log,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app_handle, event| {
+            // Terminate the bundled Brain sidecar on exit so it doesn't orphan.
+            #[cfg(desktop)]
+            if let tauri::RunEvent::ExitRequested { .. } = event {
+                use tauri::Manager;
+                if let Some(child) =
+                    app_handle.state::<BrainSidecar>().0.lock().unwrap().take()
+                {
+                    let _ = child.kill();
+                }
+            }
+        });
 }
 
 #[cfg(test)]

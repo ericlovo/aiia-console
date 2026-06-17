@@ -16,6 +16,7 @@ export const MEMORY_CATEGORIES = [
   "sessions",
   "wip",
   "meta",
+  "journal",
 ] as const;
 
 export type MemoryCategory = (typeof MEMORY_CATEGORIES)[number];
@@ -40,6 +41,7 @@ export const CATEGORY_COLORS: Record<MemoryCategory, string> = {
   sessions:  "#5B4B8A",  // indigo
   wip:       "#C2410C",  // burnt sienna
   meta:      "#6E7C92",  // slate neutral (quietest cluster)
+  journal:   "#B14A78",  // rose — personal reflections
 };
 
 export type Memory = {

@@ -20,6 +20,20 @@ import {
   sessionFilename,
   writeSessionFile,
 } from "../journal/vault";
+import { brainRemember } from "../brain/client";
+
+// File a journal entry into AIIA memory so it persists as a searchable node
+// in the Memory tab instead of vanishing into the vault. Non-fatal: the entry
+// is already saved to disk, so a Brain hiccup just skips the memory copy.
+async function rememberJournalEntry(fact: string): Promise<void> {
+  const trimmed = fact.trim();
+  if (!trimmed) return;
+  try {
+    await brainRemember({ fact: trimmed, category: "journal", source: "journal" });
+  } catch {
+    // ignore — vault copy is the source of truth; memory is best-effort
+  }
+}
 
 type SessionState = "idle" | "recording" | "wrapping" | "distilled" | "error";
 
@@ -150,6 +164,7 @@ export function JournalTab() {
       // Pick a distillation provider from configured keys.
       const distillTarget = pickDistillProvider(configured);
       if (!distillTarget) {
+        void rememberJournalEntry(text);
         setSubStatus("");
         setState("distilled");
         return;
@@ -173,6 +188,7 @@ export function JournalTab() {
         const finalResult = await writeSessionFile(filename, distilled);
         setSavedPath(finalResult.path);
         setMarkdown(distilled);
+        void rememberJournalEntry(distilled);
         setSubStatus("");
         setState("distilled");
       } catch (e) {

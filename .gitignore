@@ -20,3 +20,6 @@ src-tauri/gen/
 .env
 .env.local
 .env.*.local
+
+# Bundled Brain sidecar binary (built by aiia-brain/packaging/build-brain.sh)
+src-tauri/binaries/

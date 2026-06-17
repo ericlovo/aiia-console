@@ -27,6 +27,7 @@ import {
 } from "../providers";
 import type { ChatMessage, ModelInfo } from "../providers/types";
 import { AIIA_SYSTEM_PROMPT } from "../persona";
+import { ttsSupported, speak, cancelSpeech, primeVoices } from "../voice/tts";
 
 const EXAMPLE_PROMPTS = [
   "What can you do?",
@@ -216,13 +217,24 @@ export function ChatTab() {
     void (async () => {
       const m = await listAllModels();
       setModels(m);
-      // Default to first local Ollama model if present, else first remote.
-      const local = m.find((x) => x.provider === "ollama");
-      const choice = local ?? m[0] ?? null;
+      // Default to stock gemma (fast + clean), never the custom hf.co GGUF;
+      // then any non-custom Ollama model, then the first remote.
+      const ollama = m.filter((x) => x.provider === "ollama");
+      const choice =
+        ollama.find((x) => x.id.startsWith("gemma")) ??
+        ollama.find((x) => !x.id.includes("hf.co")) ??
+        ollama[0] ??
+        m[0] ??
+        null;
       if (choice) setModel(`${choice.provider}:${choice.id}`);
     })();
     // Only run on mount; refreshSessions is invoked manually after writes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Warm the system voice list so Aya can speak without a first-click delay.
+  useEffect(() => {
+    primeVoices();
   }, []);
 
   // Restart any in-flight stream when switching sessions.
@@ -385,7 +397,15 @@ export function ChatTab() {
 
   const onComposerKey = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+      // Return sends; Option (or Shift) + Return inserts a newline.
+      // Skip while an IME composition is active so CJK/dictation input
+      // isn't sent mid-compose.
+      if (
+        e.key === "Enter" &&
+        !e.altKey &&
+        !e.shiftKey &&
+        !e.nativeEvent.isComposing
+      ) {
         e.preventDefault();
         void send();
       }
@@ -548,7 +568,7 @@ export function ChatTab() {
                   onChange={(e) => setDraft(e.target.value)}
                   onKeyDown={onComposerKey}
                   rows={1}
-                  placeholder="Type a message…  ⌘/Ctrl + Enter to send"
+                  placeholder="Type a message…  Return to send · Option+Return for newline"
                   className="flex-1 resize-none bg-transparent py-1 text-sm text-text-1 placeholder:text-text-6 focus:outline-none"
                 />
               </div>
@@ -689,20 +709,23 @@ function MessageBubble({
       >
         {message.role === "assistant" ? (
           message.content ? (
-            <div className="prose prose-invert prose-sm max-w-none">
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                components={{ code: CodeBlock as never }}
-              >
-                {message.content}
-              </ReactMarkdown>
-              {streaming && (
-                <span
-                  className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-text-4 align-middle"
-                  aria-hidden
-                />
-              )}
-            </div>
+            <>
+              <div className="prose prose-invert prose-sm max-w-none">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{ code: CodeBlock as never }}
+                >
+                  {message.content}
+                </ReactMarkdown>
+                {streaming && (
+                  <span
+                    className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-text-4 align-middle"
+                    aria-hidden
+                  />
+                )}
+              </div>
+              {!streaming && <SpeakButton text={message.content} />}
+            </>
           ) : streaming ? (
             <ThinkingIndicator />
           ) : null
@@ -744,5 +767,53 @@ function ThinkingIndicator() {
         Aya is thinking{secs >= 3 ? ` · ${secs}s` : ""}
       </span>
     </div>
+  );
+}
+
+// Speaker toggle on a finished assistant reply — Aya reads it aloud in a
+// female system voice via the webview's Web Speech synthesis.
+function SpeakButton({ text }: { text: string }) {
+  const [speaking, setSpeaking] = useState(false);
+  if (!ttsSupported()) return null;
+  const toggle = () => {
+    if (speaking) {
+      cancelSpeech();
+      setSpeaking(false);
+      return;
+    }
+    setSpeaking(true);
+    speak(text, () => setSpeaking(false));
+  };
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      title={speaking ? "Stop" : "Read aloud"}
+      aria-label={speaking ? "Stop reading" : "Read aloud"}
+      className={
+        "mt-1.5 inline-flex h-6 w-6 items-center justify-center rounded-full transition-colors focus:outline-none " +
+        (speaking
+          ? "bg-cinnabar-500 text-white"
+          : "text-text-5 hover:bg-carbon-2 hover:text-text-2")
+      }
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.6}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="h-3.5 w-3.5"
+        aria-hidden
+      >
+        <path d="M11 5 6 9H3v6h3l5 4V5Z" />
+        {speaking ? (
+          <path d="M15 9a4 4 0 0 1 0 6" />
+        ) : (
+          <path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 6a8 8 0 0 1 0 12" />
+        )}
+      </svg>
+    </button>
   );
 }
