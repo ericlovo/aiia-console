@@ -37,6 +37,19 @@ function relativeTime(iso?: string): string {
   return `${Math.floor(mo / 12)}y ago`;
 }
 
+function absoluteTime(iso?: string): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 function looksLikePath(s: string): boolean {
   return /[\/\\]/.test(s) || /\.(md|txt|json|yaml|yml|toml)$/i.test(s);
 }
@@ -140,7 +153,11 @@ export function MemoryDetail(props: Props) {
                 className="mt-0.5 text-text-3"
                 title={memory.created_at}
               >
-                {relativeTime(memory.created_at)}
+                {absoluteTime(memory.created_at)}
+                <span className="text-text-5">
+                  {" · "}
+                  {relativeTime(memory.created_at)}
+                </span>
               </dd>
             </div>
           )}
