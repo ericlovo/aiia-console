@@ -688,26 +688,61 @@ function MessageBubble({
         }
       >
         {message.role === "assistant" ? (
-          <div className="prose prose-invert prose-sm max-w-none">
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              components={{
-                code: CodeBlock as never,
-              }}
-            >
-              {message.content || (streaming ? "…" : "")}
-            </ReactMarkdown>
-            {streaming && (
-              <span
-                className="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-amethyst-400 align-baseline"
-                aria-hidden
-              />
-            )}
-          </div>
+          message.content ? (
+            <div className="prose prose-invert prose-sm max-w-none">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{ code: CodeBlock as never }}
+              >
+                {message.content}
+              </ReactMarkdown>
+              {streaming && (
+                <span
+                  className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-text-4 align-middle"
+                  aria-hidden
+                />
+              )}
+            </div>
+          ) : streaming ? (
+            <ThinkingIndicator />
+          ) : null
         ) : (
           <div className="whitespace-pre-wrap">{message.content}</div>
         )}
       </div>
+    </div>
+  );
+}
+
+// Shown while the assistant has been asked but no tokens have arrived yet.
+// Slow local models (e.g. deepseek-r1) can reason for a minute+, so the
+// elapsed counter reassures that Aya is working, not stuck.
+function ThinkingIndicator() {
+  const [secs, setSecs] = useState(0);
+  useEffect(() => {
+    const t = window.setInterval(() => setSecs((s) => s + 1), 1000);
+    return () => window.clearInterval(t);
+  }, []);
+  return (
+    <div
+      className="flex items-center gap-2 py-0.5 text-text-5"
+      aria-label="Aya is thinking"
+    >
+      <span className="flex gap-1">
+        {[0, 1, 2].map((i) => (
+          <span
+            key={i}
+            className="inline-block h-1.5 w-1.5 rounded-full bg-text-5"
+            style={{
+              animation: "aiia-breathe 1.2s ease-in-out infinite",
+              animationDelay: `${i * 0.18}s`,
+            }}
+          />
+        ))}
+      </span>
+      <span className="text-xs">
+        Aya is thinking{secs >= 3 ? ` · ${secs}s` : ""}
+      </span>
     </div>
   );
 }
