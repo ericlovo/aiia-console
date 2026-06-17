@@ -39,7 +39,7 @@ export const CATEGORY_COLORS: Record<MemoryCategory, string> = {
   agents:    "#9D4E8C",  // murex purple
   sessions:  "#5B4B8A",  // indigo
   wip:       "#C2410C",  // burnt sienna
-  meta:      "#807666",  // ink-500 (warm neutral)
+  meta:      "#6E7C92",  // slate neutral (quietest cluster)
 };
 
 export type Memory = {

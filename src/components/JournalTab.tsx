@@ -484,10 +484,10 @@ function MicOrb({
     surface = "bg-carbon-3 text-text-6 cursor-not-allowed";
   } else if (recording) {
     surface =
-      "bg-cinnabar-500 text-vellum-50 shadow-[0_0_0_8px_rgba(193,59,42,0.12),0_0_0_18px_rgba(193,59,42,0.06)]";
+      "bg-cinnabar-500 text-vellum-50 shadow-[0_0_0_8px_rgba(194,65,12,0.12),0_0_0_18px_rgba(194,65,12,0.06)]";
   } else {
     surface =
-      "bg-vellum-100 text-ink-700 hover:bg-vellum-200 hover:text-ink-900 shadow-[0_0_0_8px_rgba(20,17,13,0.04)]";
+      "bg-vellum-100 text-ink-700 hover:bg-vellum-200 hover:text-ink-900 shadow-[0_0_0_8px_rgba(38,52,74,0.04)]";
   }
   return (
     <button

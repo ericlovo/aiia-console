@@ -592,7 +592,7 @@ export function ChatTab() {
                       type="button"
                       onClick={() => void send()}
                       disabled={!draft.trim() || !model}
-                      className="rounded-md bg-amethyst-500 px-3 py-1 text-xs font-medium text-void hover:bg-amethyst-400 disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-amethyst-400"
+                      className="rounded-md bg-cinnabar-500 px-3 py-1 text-xs font-medium text-white hover:bg-cinnabar-600 disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-cinnabar-400"
                     >
                       Send →
                     </button>

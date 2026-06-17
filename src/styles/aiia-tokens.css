@@ -27,74 +27,74 @@
    here to satisfy Tailwind's "@import must precede all rules" lint. */
 
 :root {
-  /* ── BRAND palette ──────────────────────────────────────────────────── */
-  /* Mint surfaces — pulled from the book cover */
-  --mint-50:   #EAF5F1;
-  --mint-100:  #C9E7DC;
-  --mint-200:  #A6D8C6;
-  --mint-300:  #7FC7B0;   /* core background tone */
-  --mint-400:  #5BB69A;
-  --mint-500:  #3F9A82;
-  --mint-600:  #2E7867;
+  /* ── BRAND palette (light blue / yellow / dark-orange) ──────────────── */
+  /* Mint → soft sky-blue surfaces */
+  --mint-50:   #EAF2FC;
+  --mint-100:  #CFE0F6;
+  --mint-200:  #AECBEE;
+  --mint-300:  #85B0E5;   /* core background tone */
+  --mint-400:  #5A92D8;
+  --mint-500:  #3B79C4;
+  --mint-600:  #2A5C99;
 
-  /* Ink — primary text on mint or paper */
-  --ink-900:   #14110D;   /* near-black, warm */
-  --ink-800:   #221E18;
-  --ink-700:   #3A332A;
-  --ink-600:   #564D3F;
-  --ink-500:   #807666;
+  /* Ink → dark slate-blue, primary text on light */
+  --ink-900:   #16202E;   /* near-black slate */
+  --ink-800:   #26344A;
+  --ink-700:   #3A4861;
+  --ink-600:   #51607A;
+  --ink-500:   #6E7C92;
 
-  /* Cinnabar — the red accent. Single use only (annotations, key word). */
-  --cinnabar-500: #C13B2A;
-  --cinnabar-600: #A12B1E;
-  --cinnabar-400: #D8543F;
+  /* Cinnabar → dark orange accent. Single use only (annotations, key word). */
+  --cinnabar-500: #C2410C;
+  --cinnabar-600: #9A3412;
+  --cinnabar-400: #E07B3E;
 
-  /* Vellum — paper / off-white for inverted blocks */
-  --vellum-50:  #FBF7EC;
-  --vellum-100: #F4ECD8;
-  --vellum-200: #E8DEC2;
+  /* Vellum → very light blue page tints */
+  --vellum-50:  #EFF4FC;
+  --vellum-100: #E0EAF7;
+  --vellum-200: #CCDCF0;
 
-  /* ── CONSOLE palette ───────────────────────────────────────────────── */
-  /* Void & carbon — the dashboard's structural greys */
-  --void:       #0A0A0A;   /* root background */
-  --carbon-1:   #111111;   /* card surface */
-  --carbon-2:   #141414;   /* input bg / border-bottom */
-  --carbon-3:   #181818;   /* major borders */
-  --carbon-4:   #1E1E1E;   /* card border */
-  --carbon-5:   #252525;   /* hover border */
-  --carbon-6:   #2A2A2A;   /* modal border */
-  --carbon-7:   #333333;   /* idle dot / scrollbar */
+  /* ── CONSOLE palette (light) ───────────────────────────────────────── */
+  /* Void & carbon — light page + yellow surfaces + blue-gray structure */
+  --void:       #EFF4FC;   /* root background — very light blue */
+  --carbon-1:   #FFFFFF;   /* card / button / input surface — clean white */
+  --carbon-2:   #EAF1FB;   /* input bg / hover — light blue */
+  --carbon-3:   #E6EDF6;   /* major borders — light blue */
+  --carbon-4:   #D4E0EE;   /* card border */
+  --carbon-5:   #BBCBE0;   /* hover border */
+  --carbon-6:   #9DB1CC;   /* modal border */
+  --carbon-7:   #6E7C92;   /* idle dot / scrollbar */
 
-  /* Text on dark */
-  --text-1:     #EDEDED;   /* primary white-ish */
-  --text-2:     #DDDDDD;   /* body */
-  --text-3:     #AAAAAA;   /* secondary */
-  --text-4:     #888888;   /* labels / meta */
-  --text-5:     #666666;   /* tertiary */
-  --text-6:     #555555;   /* placeholder */
-  --text-7:     #444444;   /* faint */
+  /* Text on light */
+  --text-1:     #16202E;   /* primary near-black slate */
+  --text-2:     #26344A;   /* body */
+  --text-3:     #44546E;   /* secondary */
+  --text-4:     #5E6E88;   /* labels / meta */
+  --text-5:     #7C8AA0;   /* tertiary */
+  --text-6:     #98A5B8;   /* placeholder */
+  --text-7:     #B6C1D0;   /* faint */
 
-  /* Amethyst — the console's brand accent. Purple. */
-  --amethyst-300: #C4B5FD;
-  --amethyst-400: #A78BFA;
-  --amethyst-500: #8B5CF6;
-  --amethyst-600: #7C3AED;
-  --amethyst-700: #6D28D9;
-  --amethyst-glass-10: rgba(139, 92, 246, 0.10);
-  --amethyst-glass-20: rgba(139, 92, 246, 0.20);
-  --amethyst-glass-40: rgba(139, 92, 246, 0.40);
+  /* Amethyst → dark slate (generic accent reads dark on light) */
+  --amethyst-300: #5E6E88;
+  --amethyst-400: #3A4861;
+  --amethyst-500: #26344A;
+  --amethyst-600: #1B2738;
+  --amethyst-700: #16202E;
+  --amethyst-glass-10: rgba(38, 52, 74, 0.06);
+  --amethyst-glass-20: rgba(38, 52, 74, 0.12);
+  --amethyst-glass-40: rgba(38, 52, 74, 0.24);
 
   /* ── Semantic state colours ────────────────────────────────────────── */
   /* These map to memory categories AND to live status. One name does both. */
-  --status-healthy:   #22C55E;   /* green-500 — shipped / running fine */
-  --status-attention: #F59E0B;   /* amber-500 — needs your call / stale */
-  --status-failing:   #EF4444;   /* red-500 — error / blocked */
-  --status-active:    #3B82F6;   /* blue-500 — in flight, working */
-  --status-team:      #06B6D4;   /* cyan-500 — from the team / inbox */
-  --status-project:   #10B981;   /* emerald-500 — project memory */
-  --status-meta:      #EC4899;   /* pink-500 — meta / about AIIA */
-  --status-agents:    #6366F1;   /* indigo-500 — agent memory */
-  --status-idle:      #3A3A3A;   /* loop hasn't run yet */
+  --status-healthy:   #15803D;   /* green-700 — shipped / running fine */
+  --status-attention: #C2410C;   /* dark orange — needs your call / stale */
+  --status-failing:   #DC2626;   /* red-600 — error / blocked */
+  --status-active:    #2563EB;   /* blue-600 — in flight, working */
+  --status-team:      #0891B2;   /* cyan-600 — from the team / inbox */
+  --status-project:   #059669;   /* emerald-600 — project memory */
+  --status-meta:      #DB2777;   /* pink-600 — meta / about AIIA */
+  --status-agents:    #4F46E5;   /* indigo-600 — agent memory */
+  --status-idle:      #9DB1CC;   /* loop hasn't run yet */
 
   /* Glass overlays — semi-transparent fills for cards & pills */
   --healthy-10:   rgba(34, 197, 94, 0.10);
@@ -146,11 +146,11 @@
 
   /* ── Elevation ──────────────────────────────────────────────────────── */
   /* On dark surfaces, elevation is mostly conveyed by border + slight glow */
-  --shadow-sm:    0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-md:    0 4px 12px rgba(0, 0, 0, 0.5);
-  --shadow-modal: 0 24px 64px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  --shadow-sm:    0 1px 2px rgba(22, 32, 46, 0.08);
+  --shadow-md:    0 4px 12px rgba(22, 32, 46, 0.12);
+  --shadow-modal: 0 24px 64px rgba(22, 32, 46, 0.18), 0 0 0 1px rgba(22, 32, 46, 0.06);
   --shadow-glow-amethyst: 0 0 0 1px var(--amethyst-glass-40), 0 8px 24px var(--amethyst-glass-20);
-  --shadow-glow-cinnabar: 0 0 0 1px rgba(193, 59, 42, 0.30), 0 8px 24px rgba(193, 59, 42, 0.15);
+  --shadow-glow-cinnabar: 0 0 0 1px rgba(194, 65, 12, 0.30), 0 8px 24px rgba(194, 65, 12, 0.15);
 
   /* ── Motion ─────────────────────────────────────────────────────────── */
   --ease-out:   cubic-bezier(0.16, 1, 0.3, 1);

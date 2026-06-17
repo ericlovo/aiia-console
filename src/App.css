@@ -22,70 +22,73 @@
   --font-body: "EB Garamond", "Adobe Caslon Pro", Garamond, "Georgia", serif;
 
   /* Brand surface — still available by name (bg-vellum-50, text-ink-900, …) */
-  --color-mint-50: #EAF5F1;
-  --color-mint-100: #C9E7DC;
-  --color-mint-200: #A6D8C6;
-  --color-mint-300: #7FC7B0;
-  --color-mint-400: #5BB69A;
-  --color-mint-500: #3F9A82;
-  --color-mint-600: #2E7867;
+  /* mint → soft sky-blue (theme accent / "active" family) */
+  --color-mint-50: #EAF2FC;
+  --color-mint-100: #CFE0F6;
+  --color-mint-200: #AECBEE;
+  --color-mint-300: #85B0E5;
+  --color-mint-400: #5A92D8;
+  --color-mint-500: #3B79C4;
+  --color-mint-600: #2A5C99;
 
-  --color-ink-500: #807666;
-  --color-ink-600: #564D3F;
-  --color-ink-700: #3A332A;
-  --color-ink-800: #221E18;
-  --color-ink-900: #14110D;
+  /* ink → dark slate-blue (primary text on light) */
+  --color-ink-500: #6E7C92;
+  --color-ink-600: #51607A;
+  --color-ink-700: #3A4861;
+  --color-ink-800: #26344A;
+  --color-ink-900: #16202E;
 
-  --color-cinnabar-400: #D8543F;
-  --color-cinnabar-500: #C13B2A;
-  --color-cinnabar-600: #A12B1E;
+  /* cinnabar → dark orange (the single-spot accent / CTA) */
+  --color-cinnabar-400: #E07B3E;
+  --color-cinnabar-500: #C2410C;
+  --color-cinnabar-600: #9A3412;
 
-  --color-vellum-50: #FBF7EC;
-  --color-vellum-100: #F4ECD8;
-  --color-vellum-200: #E8DEC2;
+  /* vellum → very light blue page tints */
+  --color-vellum-50: #EFF4FC;
+  --color-vellum-100: #E0EAF7;
+  --color-vellum-200: #CCDCF0;
 
-  /* ── Legacy "console" tokens, rebound onto vellum/ink ─────────────────
-     bg-void  → page background (vellum-50)
-     bg-carbon-1..7 → graduated warm-cream → ink tones (cards, borders,
-                     hovers — keep visual hierarchy without darkness)
-     text-text-1..7 → ink-900 → faint ink (primary → tertiary)
-     bg/text/border-amethyst-300..700 → ink scale (so any accent that was
-                     amethyst becomes warm-black; cinnabar is reserved for
-                     explicit single-spot use only) */
-  --color-void: #FBF7EC;
-  --color-carbon-1: #F6F0DE;
-  --color-carbon-2: #F1EAD0;
-  --color-carbon-3: #E8DEC2;
-  --color-carbon-4: #DCCFAA;
-  --color-carbon-5: #CFC093;
-  --color-carbon-6: #B5A77B;
-  --color-carbon-7: #807666;
+  /* ── Legacy "console" tokens, rebound onto the light blue/yellow scale ──
+     bg-void  → page background (very light blue)
+     bg-carbon-1..2 → light-yellow card/raised surfaces
+     bg-carbon-3..7 → light blue-gray structure (borders, hovers, dividers)
+     text-text-1..7 → dark slate → faint slate (primary → tertiary)
+     bg/text/border-amethyst-300..700 → dark slate (generic accent reads
+                     as dark; cinnabar/dark-orange is the spot accent) */
+  --color-void: #EFF4FC;
+  --color-carbon-1: #FFFFFF;
+  --color-carbon-2: #EAF1FB;
+  --color-carbon-3: #E6EDF6;
+  --color-carbon-4: #D4E0EE;
+  --color-carbon-5: #BBCBE0;
+  --color-carbon-6: #9DB1CC;
+  --color-carbon-7: #6E7C92;
 
-  --color-text-1: #14110D;
-  --color-text-2: #221E18;
-  --color-text-3: #3A332A;
-  --color-text-4: #564D3F;
-  --color-text-5: #807666;
-  --color-text-6: #978C7B;
-  --color-text-7: #B3A691;
+  --color-text-1: #16202E;
+  --color-text-2: #26344A;
+  --color-text-3: #44546E;
+  --color-text-4: #5E6E88;
+  --color-text-5: #7C8AA0;
+  --color-text-6: #98A5B8;
+  --color-text-7: #B6C1D0;
 
-  --color-amethyst-300: #807666;
-  --color-amethyst-400: #3A332A;
-  --color-amethyst-500: #14110D;
-  --color-amethyst-600: #221E18;
-  --color-amethyst-700: #14110D;
+  --color-amethyst-300: #5E6E88;
+  --color-amethyst-400: #3A4861;
+  --color-amethyst-500: #26344A;
+  --color-amethyst-600: #1B2738;
+  --color-amethyst-700: #16202E;
 
-  /* Semantic / status — kept saturated so warnings/errors still read on
-     a cream surface. */
-  --color-status-healthy: #2E7867;
-  --color-status-attention: #B7791F;
+  /* Semantic / status — saturated so warnings/errors still read on a
+     light surface; attention shifted to the dark-orange accent. */
+  --color-status-healthy: #15803D;
+  --color-status-attention: #C2410C;
   --color-status-failing: #B91C1C;
   --color-status-active: #1D4ED8;
   --color-status-team: #0E7490;
   --color-status-project: #047857;
   --color-status-meta: #BE185D;
   --color-status-agents: #4338CA;
-  --color-status-idle: #B5A77B;
+  --color-status-idle: #9DB1CC;
 
   /* Radius */
   --radius-sm: 4px;
@@ -115,11 +118,11 @@ body {
   font-feature-settings: "kern", "liga", "onum";
 }
 
-/* Scrollbar — thin ink hairline on cream */
+/* Scrollbar — thin slate hairline on the light surface */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(20, 17, 13, 0.18); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(20, 17, 13, 0.32); }
+::-webkit-scrollbar-thumb { background: rgba(22, 32, 46, 0.18); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(22, 32, 46, 0.32); }
 
 /* Pulsing dot — used by the cinnabar "start here" marker on the host. */
 @keyframes aiia-breathe {
