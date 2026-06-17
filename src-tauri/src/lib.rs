@@ -654,9 +654,9 @@ pub fn run() {
                     // Point the Brain at the baked-in model so its LLM tasks
                     // (journal distill, memory extraction) use what's bundled.
                     let cmd = app.shell().sidecar("aiia-brain").map(|c| {
-                        c.env("LOCAL_ROUTING_MODEL", "gemma3:4b")
-                            .env("LOCAL_TASK_MODEL", "gemma3:4b")
-                            .env("LOCAL_DEEP_MODEL", "gemma3:4b")
+                        c.env("LOCAL_ROUTING_MODEL", "gemma3:1b")
+                            .env("LOCAL_TASK_MODEL", "gemma3:1b")
+                            .env("LOCAL_DEEP_MODEL", "gemma3:1b")
                     });
                     match cmd.and_then(|c| c.spawn()) {
                         Ok((_rx, child)) => {
