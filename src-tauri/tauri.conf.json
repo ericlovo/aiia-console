@@ -33,6 +33,12 @@
     ],
     "externalBin": [
       "binaries/aiia-brain"
-    ]
+    ],
+    "macOS": {
+      "signingIdentity": "Developer ID Application: Code Word Technologies Inc. (2SA8HN3DMZ)",
+      "hardenedRuntime": true,
+      "entitlements": "Entitlements.plist",
+      "minimumSystemVersion": "10.13"
+    }
   }
 }
