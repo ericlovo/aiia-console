@@ -272,6 +272,24 @@ export function ChatTab() {
     [active.id, refreshSessions, startNewChat],
   );
 
+  const renameSession = useCallback(
+    async (id: string, title: string) => {
+      const t = title.trim() || "Untitled";
+      // Optimistic rail update so the new name shows immediately.
+      setSessions((prev) => prev.map((s) => (s.id === id ? { ...s, title: t } : s)));
+      if (id === active.id) {
+        const next = { ...active, title: t };
+        setActive(next);
+        await backendSaveSession(next);
+      } else {
+        const loaded = await backendLoadSession(id);
+        if (loaded) await backendSaveSession({ ...loaded, title: t });
+      }
+      void refreshSessions();
+    },
+    [active, refreshSessions],
+  );
+
   // ---- Message thread auto-scroll ----
   const threadRef = useRef<HTMLDivElement | null>(null);
   const stickyRef = useRef(true);
@@ -472,6 +490,7 @@ export function ChatTab() {
               activeId={active.id}
               onSelect={switchSession}
               onDelete={deleteSession}
+              onRename={renameSession}
             />
             <SessionGroup
               label="Yesterday"
@@ -479,6 +498,7 @@ export function ChatTab() {
               activeId={active.id}
               onSelect={switchSession}
               onDelete={deleteSession}
+              onRename={renameSession}
             />
             <SessionGroup
               label="Earlier"
@@ -486,6 +506,7 @@ export function ChatTab() {
               activeId={active.id}
               onSelect={switchSession}
               onDelete={deleteSession}
+              onRename={renameSession}
             />
           </div>
         </aside>
@@ -649,46 +670,115 @@ function SessionGroup({
   activeId,
   onSelect,
   onDelete,
+  onRename,
 }: {
   label: string;
   items: ChatSessionMeta[];
   activeId: string;
   onSelect: (id: string) => void;
   onDelete: (id: string) => void;
+  onRename: (id: string, title: string) => void;
 }) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState("");
+  const skipBlur = useRef(false);
+
   if (items.length === 0) return null;
+
+  const startEdit = (s: ChatSessionMeta) => {
+    setDraft(s.title || "");
+    setEditingId(s.id);
+  };
+  const commit = (id: string) => {
+    skipBlur.current = true; // prevent the unmount blur from re-committing
+    onRename(id, draft);
+    setEditingId(null);
+  };
+  const cancel = () => {
+    skipBlur.current = true;
+    setEditingId(null);
+  };
+
   return (
     <div className="mb-3">
       <div className="px-2 pb-1 pt-2 text-[10px] uppercase tracking-wider text-text-6">
         {label}
       </div>
       <ul className="space-y-0.5">
-        {items.map((s) => (
-          <li key={s.id} className="group flex items-center">
-            <button
-              type="button"
-              onClick={() => onSelect(s.id)}
-              className={
-                "flex-1 truncate rounded px-2 py-1 text-left text-xs " +
-                (s.id === activeId
-                  ? "bg-carbon-3 text-text-1"
-                  : "text-text-4 hover:bg-carbon-1 hover:text-text-2")
-              }
-              title={s.title}
-            >
-              {/* TODO: rename UI */}
-              {s.title || "Untitled"}
-            </button>
-            <button
-              type="button"
-              onClick={() => onDelete(s.id)}
-              aria-label="Delete chat"
-              className="ml-1 hidden rounded p-1 text-text-5 hover:text-status-failing group-hover:block"
-            >
-              ×
-            </button>
-          </li>
-        ))}
+        {items.map((s) =>
+          editingId === s.id ? (
+            <li key={s.id} className="flex items-center">
+              <input
+                autoFocus
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onBlur={() => {
+                  if (skipBlur.current) {
+                    skipBlur.current = false;
+                    return;
+                  }
+                  commit(s.id);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    commit(s.id);
+                  } else if (e.key === "Escape") {
+                    e.preventDefault();
+                    cancel();
+                  }
+                }}
+                className="flex-1 rounded bg-carbon-1 px-2 py-1 text-xs text-text-1 ring-1 ring-carbon-7 focus:outline-none"
+              />
+            </li>
+          ) : (
+            <li key={s.id} className="group flex items-center">
+              <button
+                type="button"
+                onClick={() => onSelect(s.id)}
+                onDoubleClick={() => startEdit(s)}
+                className={
+                  "flex-1 truncate rounded px-2 py-1 text-left text-xs " +
+                  (s.id === activeId
+                    ? "bg-carbon-3 text-text-1"
+                    : "text-text-4 hover:bg-carbon-1 hover:text-text-2")
+                }
+                title={s.title}
+              >
+                {s.title || "Untitled"}
+              </button>
+              <button
+                type="button"
+                onClick={() => startEdit(s)}
+                aria-label="Rename chat"
+                title="Rename"
+                className="ml-1 hidden rounded p-1 text-text-5 hover:text-text-2 group-hover:block"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={1.6}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-3.5 w-3.5"
+                  aria-hidden
+                >
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={() => onDelete(s.id)}
+                aria-label="Delete chat"
+                className="hidden rounded p-1 text-text-5 hover:text-status-failing group-hover:block"
+              >
+                ×
+              </button>
+            </li>
+          ),
+        )}
       </ul>
     </div>
   );

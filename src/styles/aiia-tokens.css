@@ -112,7 +112,7 @@
   --font-mono:    "JetBrains Mono", "SF Mono", "IBM Plex Mono", ui-monospace, monospace;
 
   /* Weight tokens */
-  --w-regular:  400;
+  --w-regular:  500;
   --w-medium:   500;
   --w-semibold: 600;
   --w-bold:     700;
@@ -232,7 +232,7 @@
 .t-h1 {
   font-family: var(--font-sans);
   font-size: 30px;
-  font-weight: 300;
+  font-weight: 500;
   color: var(--text-1);
   letter-spacing: var(--track-tight);
 }
