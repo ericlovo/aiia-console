@@ -6,6 +6,37 @@
 
 import { invoke } from "@tauri-apps/api/core";
 
+// Marker the Rust side (brain.rs::BRAIN_AUTH_ERR) puts on the Err string when
+// the Brain is reachable but rejected our API key (401/403).
+const BRAIN_AUTH_MARKER = "BRAIN_AUTH";
+
+/// Thrown when the Brain is up but refused our key. Distinct from a null
+/// return (Brain unreachable) so the UI can point the user at Settings.
+export class BrainAuthError extends Error {
+  constructor(
+    message = "Brain rejected the API key. Set it in Settings → Brain API key.",
+  ) {
+    super(message);
+    this.name = "BrainAuthError";
+  }
+}
+
+// All Brain calls funnel through here so a 401/403 becomes a typed
+// BrainAuthError instead of a raw Tauri Err string.
+async function invokeBrain<T>(
+  cmd: string,
+  args?: Record<string, unknown>,
+): Promise<T> {
+  try {
+    return await invoke<T>(cmd, args);
+  } catch (e) {
+    const msg =
+      typeof e === "string" ? e : e instanceof Error ? e.message : String(e);
+    if (msg.includes(BRAIN_AUTH_MARKER)) throw new BrainAuthError();
+    throw e instanceof Error ? e : new Error(msg);
+  }
+}
+
 export const MEMORY_CATEGORIES = [
   "decisions",
   "patterns",
@@ -138,7 +169,7 @@ function coerceStats(raw: unknown): MemoryStats {
 }
 
 export async function brainStatus(): Promise<BrainStatus | null> {
-  const raw = await invoke<unknown>("brain_status");
+  const raw = await invokeBrain<unknown>("brain_status");
   if (!raw) return null;
   const r = asRecord(raw);
   if (!r) return null;
@@ -157,7 +188,7 @@ export async function brainListMemories(
   category?: string,
   limit?: number,
 ): Promise<MemoryListResponse | null> {
-  const raw = await invoke<unknown>("brain_list_memories", {
+  const raw = await invokeBrain<unknown>("brain_list_memories", {
     category: category ?? null,
     limit: limit ?? null,
   });
@@ -183,7 +214,7 @@ export async function brainRemember(input: {
   source?: string;
   metadata?: Record<string, unknown>;
 }): Promise<Memory> {
-  const raw = await invoke<unknown>("brain_remember", {
+  const raw = await invokeBrain<unknown>("brain_remember", {
     fact: input.fact,
     category: input.category ?? null,
     source: input.source ?? null,
@@ -195,14 +226,14 @@ export async function brainRemember(input: {
 }
 
 export async function brainForget(id: string): Promise<boolean> {
-  return await invoke<boolean>("brain_forget", { id });
+  return await invokeBrain<boolean>("brain_forget", { id });
 }
 
 export async function brainSearch(
   query: string,
   nResults?: number,
 ): Promise<SearchResponse | null> {
-  const raw = await invoke<unknown>("brain_search", {
+  const raw = await invokeBrain<unknown>("brain_search", {
     query,
     nResults: nResults ?? null,
     includeSessions: false,

@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
+  BrainAuthError,
   brainForget,
   brainListMemories,
   brainRemember,
@@ -36,6 +37,9 @@ type Toast = { kind: "error" | "info"; message: string } | null;
 export function MemoryTab() {
   const [status, setStatus] = useState<BrainStatus | null>(null);
   const [statusChecked, setStatusChecked] = useState(false);
+  // Brain is reachable but rejected our API key (401/403) — distinct from
+  // status === null (Brain not detected). Drives the "set your key" panel.
+  const [authRejected, setAuthRejected] = useState(false);
   const [memories, setMemories] = useState<Memory[]>([]);
   const [stats, setStats] = useState<MemoryStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -87,11 +91,14 @@ export function MemoryTab() {
         setStats(resp.stats);
       }
     } catch (e) {
+      if (e instanceof BrainAuthError) setAuthRejected(true);
       setToast({
         kind: "error",
         message:
           e instanceof Error
-            ? `Failed to load memories: ${e.message}`
+            ? e instanceof BrainAuthError
+              ? e.message
+              : `Failed to load memories: ${e.message}`
             : "Failed to load memories.",
       });
     } finally {
@@ -106,6 +113,7 @@ export function MemoryTab() {
       try {
         const s = await brainStatus();
         if (cancelled) return;
+        setAuthRejected(false);
         setStatus(s);
         setStatusChecked(true);
         if (s) {
@@ -113,11 +121,15 @@ export function MemoryTab() {
         } else {
           setLoading(false);
         }
-      } catch {
+      } catch (e) {
         if (cancelled) return;
         setStatus(null);
         setStatusChecked(true);
         setLoading(false);
+        if (e instanceof BrainAuthError) {
+          setAuthRejected(true);
+          setToast({ kind: "error", message: e.message });
+        }
       }
     })();
     return () => {
@@ -128,10 +140,18 @@ export function MemoryTab() {
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      // Re-probe status too, in case the Brain just came online.
+      // Re-probe status too, in case the Brain just came online (or the user
+      // just fixed the API key in Settings).
       const s = await brainStatus();
+      setAuthRejected(false);
       setStatus(s);
       if (s) await loadMemories();
+    } catch (e) {
+      setStatus(null);
+      if (e instanceof BrainAuthError) {
+        setAuthRejected(true);
+        setToast({ kind: "error", message: e.message });
+      }
     } finally {
       setRefreshing(false);
     }
@@ -276,14 +296,30 @@ export function MemoryTab() {
             ⚠
           </div>
           <h2 className="mb-2 text-lg font-semibold text-text-1">
-            AIIA Brain not detected
+            {authRejected
+              ? "Brain rejected the API key"
+              : "AIIA Brain not detected"}
           </h2>
           <p className="mb-4 text-sm leading-relaxed text-text-4">
-            Memory features require the Brain running on{" "}
-            <code className="rounded bg-carbon-1 px-1.5 py-0.5 font-mono text-xs text-text-3">
-              localhost:8100
-            </code>
-            .
+            {authRejected ? (
+              <>
+                The Brain is running but refused the key. Open{" "}
+                <span className="text-text-3">Settings → Brain API key</span> and
+                enter the value of{" "}
+                <code className="rounded bg-carbon-1 px-1.5 py-0.5 font-mono text-xs text-text-3">
+                  LOCAL_BRAIN_API_KEY
+                </code>
+                , then check again.
+              </>
+            ) : (
+              <>
+                Memory features require the Brain running on{" "}
+                <code className="rounded bg-carbon-1 px-1.5 py-0.5 font-mono text-xs text-text-3">
+                  localhost:8100
+                </code>
+                .
+              </>
+            )}
           </p>
           <div className="flex flex-col items-center gap-2">
             <button
