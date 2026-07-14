@@ -77,9 +77,17 @@ fn brain_client() -> Result<reqwest::Client, String> {
         .map_err(|e| format!("brain client init failed: {}", e))
 }
 
-/// Internal helper: returns `Ok(None)` for any transport/timeout/5xx error,
-/// `Ok(Some(value))` for 2xx, and `Err` only when the URL itself is malformed
-/// (programmer error).
+/// Marker prefix on the `Err` string when the Brain is reachable but rejected
+/// our API key (HTTP 401/403). The TS layer keys off this to show a "set your
+/// key" affordance instead of the generic "Brain not detected" state — an
+/// unreachable Brain and a rejected key look identical otherwise.
+pub const BRAIN_AUTH_ERR: &str = "BRAIN_AUTH";
+
+/// Internal helper. `Ok(Some(value))` for 2xx; `Ok(None)` for a Brain that is
+/// unreachable (transport/timeout) or otherwise unhappy (5xx, bad body) — the
+/// graceful "not detected" path. A 401/403 is different: the Brain *is* there
+/// and actively refused our key, so we surface `Err("BRAIN_AUTH:<code>")` and
+/// let the UI tell the user to fix their key rather than silently show empty.
 async fn brain_get_optional(path: &str) -> Result<Option<Value>, String> {
     let url = format!("{}{}", brain_base_url(), path);
     let client = match brain_client() {
@@ -90,7 +98,13 @@ async fn brain_get_optional(path: &str) -> Result<Option<Value>, String> {
         Ok(r) => r,
         Err(_) => return Ok(None),
     };
-    if !resp.status().is_success() {
+    let status = resp.status();
+    if status == reqwest::StatusCode::UNAUTHORIZED
+        || status == reqwest::StatusCode::FORBIDDEN
+    {
+        return Err(format!("{}:{}", BRAIN_AUTH_ERR, status.as_u16()));
+    }
+    if !status.is_success() {
         return Ok(None);
     }
     match resp.json::<Value>().await {
