@@ -32,14 +32,18 @@ ENT="$(cd "$(dirname "$0")/.." && pwd)/src-tauri/Entitlements.plist"
 [ -d "$APP" ] || { echo "error: app not found: $APP" >&2; exit 1; }
 [ -f "$ENT" ] || { echo "error: entitlements not found: $ENT" >&2; exit 1; }
 
-echo "==> 1/5 signing dylibs (hardened runtime)"
+echo "==> 1/5 signing shared libraries (hardened runtime)"
+# .so included: Ollama >= 0.32 ships per-CPU ggml variants as Mach-O .so files —
+# notarization rejects any unsigned nested Mach-O.
 while IFS= read -r -d '' lib; do
   codesign --force --timestamp --options runtime --sign "$ID" "$lib"
-done < <(find "$APP" -type f -name "*.dylib" -print0)
+done < <(find "$APP" -type f \( -name "*.dylib" -o -name "*.so" \) -print0)
 
 echo "==> 2/5 signing nested executables (entitlements + runtime)"
 for bin in \
   "$APP/Contents/Resources/ollama-runtime/ollama" \
+  "$APP/Contents/Resources/ollama-runtime/llama-server" \
+  "$APP/Contents/Resources/ollama-runtime/llama-quantize" \
   "$APP/Contents/MacOS/aiia-brain"; do
   [ -f "$bin" ] && codesign --force --timestamp --options runtime \
     --entitlements "$ENT" --sign "$ID" "$bin"

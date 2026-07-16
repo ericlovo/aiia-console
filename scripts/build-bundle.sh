@@ -37,10 +37,19 @@ say "Building app (tauri build)"
 npm run tauri build
 
 # ── Embed the Ollama runtime (verbatim — it dlopens its dylibs from its own dir)
+# Copy everything except app icons/artwork: Ollama's Resources layout shifts
+# between versions (0.32 moved mlx.metallib into mlx_metal_v*/ and added
+# llama-server + per-CPU ggml .so variants), so mirror the dir instead of
+# naming files.
 say "Embedding Ollama runtime"
 RES="$APP/Contents/Resources"
 rm -rf "$RES/ollama-runtime"; mkdir -p "$RES/ollama-runtime"
-cp "$OLLAMA_RES/ollama" "$OLLAMA_RES"/*.dylib "$OLLAMA_RES/mlx.metallib" "$RES/ollama-runtime/"
+for f in "$OLLAMA_RES"/*; do
+  case "$(basename "$f")" in
+    *.png|*.icns) ;;
+    *) cp -R "$f" "$RES/ollama-runtime/" ;;
+  esac
+done
 
 # ── Embed the model (manifest + the blobs it references) ────────────────────
 say "Embedding model $MODEL"
