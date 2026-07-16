@@ -34,6 +34,13 @@ import {
 
 type Toast = { kind: "error" | "info"; message: string } | null;
 
+// The Brain's /v1/aiia/memory endpoint defaults to limit=50 — a sane cap for
+// callers injecting memories into an LLM's context window (mcp_server.py,
+// obsidian_bridge.py, command_center/aiia_tasks.py all pass small, deliberate
+// limits for that reason). The graph view has no such budget: it's meant to
+// show the whole store, so it asks for everything explicitly.
+const ALL_MEMORIES_LIMIT = 100_000;
+
 export function MemoryTab() {
   const [status, setStatus] = useState<BrainStatus | null>(null);
   const [statusChecked, setStatusChecked] = useState(false);
@@ -82,7 +89,7 @@ export function MemoryTab() {
   const loadMemories = useCallback(async () => {
     setLoading(true);
     try {
-      const resp = await brainListMemories();
+      const resp = await brainListMemories(undefined, ALL_MEMORIES_LIMIT);
       if (!resp) {
         setMemories([]);
         setStats(null);
