@@ -143,6 +143,9 @@ export function TopicDetail({ topicId }: { topicId: string }) {
     action: "",
     count: 0,
   });
+  // Any-failure streak — catches a model alternating between two failing
+  // actions, which the identical-action streak can't see.
+  const anyFailRef = useRef(0);
 
   const refresh = useCallback(async () => {
     try {
@@ -179,6 +182,7 @@ export function TopicDetail({ topicId }: { topicId: string }) {
     setStage("ask");
 
     failStreakRef.current = { action: "", count: 0 };
+    anyFailRef.current = 0;
     const handle = runSession(topic.id, (ev) => {
       if (ev.type === "action") setStage(stageFor(ev.action));
       if (ev.type === "done") setStage("again");
@@ -186,6 +190,16 @@ export function TopicDetail({ topicId }: { topicId: string }) {
       // Collapse a failure streak: show the first two identical failures,
       // then one honest coach line, then silence until the streak breaks.
       if (ev.type === "result" && !ev.ok) {
+        anyFailRef.current += 1;
+        if (anyFailRef.current === 6) {
+          setFeed((f) => [
+            ...f,
+            {
+              text: "Six failed steps in a row — nothing this session is landing. That usually means the Brain's model is too small for the loop's tools, or the topic has no sources to read. Stopping the session is reasonable.",
+              tone: "warn",
+            },
+          ]);
+        }
         const streak = failStreakRef.current;
         if (streak.action === ev.action) {
           streak.count += 1;
@@ -202,8 +216,9 @@ export function TopicDetail({ topicId }: { topicId: string }) {
         } else {
           failStreakRef.current = { action: ev.action, count: 1 };
         }
-      } else if (ev.type === "result" || ev.type === "action") {
-        if (ev.type === "result") failStreakRef.current = { action: "", count: 0 };
+      } else if (ev.type === "result") {
+        failStreakRef.current = { action: "", count: 0 };
+        anyFailRef.current = 0;
       }
 
       const line = narrate(ev);
