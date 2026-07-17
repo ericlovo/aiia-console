@@ -26,7 +26,7 @@ import {
 } from "../brain/client";
 import { AddMemoryModal } from "./memory/AddMemoryModal";
 import { MemoryDetail } from "./memory/MemoryDetail";
-import { MemoryGraph } from "./memory/MemoryGraph";
+import { MemoryGlobe } from "./memory/MemoryGlobe";
 import {
   MemorySidebar,
   type CategoryFilter,
@@ -376,7 +376,7 @@ export function MemoryTab() {
         {loading ? (
           <GraphSkeleton />
         ) : (
-          <MemoryGraph
+          <MemoryGlobe
             memories={filteredMemories}
             selectedId={selectedId}
             onSelect={setSelectedId}
