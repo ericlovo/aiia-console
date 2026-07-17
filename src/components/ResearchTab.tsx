@@ -1,41 +1,44 @@
-// ResearchTab — autonomous research-execution loop dispatcher.
+// ResearchTab — the Brain's research loop, driven entirely from the app.
 //
-// Left pane: list of loop instances under ~/.aiia/loops/, each with a status
-// pill. Right pane: when a loop is selected, the loop detail view with queue,
-// belief, escalations, log tail, and run/stop controls.
+// Left pane: research topics from GET /v1/research/topics, each one an
+// accumulating loop (question → sessions → synthesis + gaps). Right pane:
+// the selected topic's loop anatomy (see research/TopicDetail.tsx).
 //
-// All Tauri access funnels through src/loops/client.ts. Polling is plain
-// useEffect + setInterval; the cadence shortens while a loop is running so
-// the user sees progress without lag, and lengthens when the loop is idle.
+// All Brain access funnels through src/research/client.ts → the Rust
+// commands in src-tauri/src/research.rs, matching the Memory tab's posture:
+// no fetch from JS, keys stay in Rust. When the Brain is unreachable the
+// tab degrades to a plain explanation instead of an error wall.
 
 import { useCallback, useEffect, useState } from "react";
 
-import {
-  loopListInstances,
-  type LoopInstance,
-} from "../loops/client";
-import { LoopDetail } from "./research/LoopDetail";
-import { LoopList } from "./research/LoopList";
-import { NewLoopModal } from "./research/NewLoopModal";
+import { BrainAuthError } from "../brain/client";
+import { listTopics, type ResearchTopic } from "../research/client";
+import { NewTopicModal } from "./research/NewTopicModal";
+import { TopicDetail } from "./research/TopicDetail";
+import { TopicList } from "./research/TopicList";
 
-const INSTANCE_POLL_MS = 5_000;
+const LIST_POLL_MS = 10_000;
 
 export function ResearchTab() {
-  const [instances, setInstances] = useState<LoopInstance[]>([]);
+  const [topics, setTopics] = useState<ResearchTopic[] | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [authError, setAuthError] = useState(false);
   const [newOpen, setNewOpen] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
-      const next = await loopListInstances();
-      setInstances(next);
-      setError(null);
-      // auto-select first instance on initial load
-      setSelected((cur) => cur ?? next[0]?.name ?? null);
+      const next = await listTopics();
+      setTopics(next);
+      setAuthError(false);
+      if (next) {
+        setSelected((cur) =>
+          cur && next.some((t) => t.id === cur) ? cur : (next[0]?.id ?? null),
+        );
+      }
     } catch (e) {
-      setError(String(e));
+      if (e instanceof BrainAuthError) setAuthError(true);
+      setTopics(null);
     } finally {
       setLoading(false);
     }
@@ -43,13 +46,13 @@ export function ResearchTab() {
 
   useEffect(() => {
     refresh();
-    const id = window.setInterval(refresh, INSTANCE_POLL_MS);
+    const id = window.setInterval(refresh, LIST_POLL_MS);
     return () => window.clearInterval(id);
   }, [refresh]);
 
   const onCreated = useCallback(
-    (name: string) => {
-      setSelected(name);
+    (topic: ResearchTopic) => {
+      setSelected(topic.id);
       refresh();
     },
     [refresh],
@@ -67,8 +70,8 @@ export function ResearchTab() {
               type="button"
               onClick={() => setNewOpen(true)}
               className="rounded border border-carbon-4 px-2 py-0.5 text-[10px] uppercase tracking-wider text-text-3 hover:border-cinnabar-400 hover:text-cinnabar-400"
-              title="New loop"
-              aria-label="New loop"
+              title="New topic"
+              aria-label="New topic"
             >
               + new
             </button>
@@ -85,26 +88,38 @@ export function ResearchTab() {
         </div>
         {loading ? (
           <div className="px-4 py-2 text-xs text-text-5">loading…</div>
-        ) : error ? (
-          <div className="px-4 py-2 text-xs text-status-error">{error}</div>
-        ) : instances.length === 0 ? (
+        ) : topics === null ? (
+          <div className="space-y-2 px-4 py-3 text-xs leading-relaxed text-text-5">
+            {authError ? (
+              <p>
+                The Brain rejected your API key. Set it in Settings → API keys
+                (id: <code className="font-mono">brain</code>).
+              </p>
+            ) : (
+              <p>
+                Brain not detected. Research loops run on the AIIA Brain —
+                start it, or point Settings at a remote one.
+              </p>
+            )}
+          </div>
+        ) : topics.length === 0 ? (
           <div className="space-y-3 px-4 py-3 text-xs text-text-5">
-            <p>No loops yet.</p>
+            <p className="leading-relaxed">
+              No research topics yet. A topic is a question the loop chases
+              across sessions — reading sources, growing one synthesis, and
+              naming what it still doesn't know.
+            </p>
             <button
               type="button"
               onClick={() => setNewOpen(true)}
               className="w-full rounded border border-carbon-4 px-3 py-1.5 text-[11px] text-text-2 hover:border-cinnabar-400 hover:text-cinnabar-400"
             >
-              + initialize a new loop
+              + start your first topic
             </button>
-            <p className="text-[10px] leading-relaxed text-text-6">
-              You can also use the CLI:{" "}
-              <code className="font-mono">python3 -m loops.cli init …</code>
-            </p>
           </div>
         ) : (
-          <LoopList
-            instances={instances}
+          <TopicList
+            topics={topics}
             selected={selected}
             onSelect={setSelected}
           />
@@ -113,15 +128,15 @@ export function ResearchTab() {
 
       <main className="flex min-h-0 flex-1 flex-col bg-void">
         {selected ? (
-          <LoopDetail name={selected} />
+          <TopicDetail topicId={selected} />
         ) : (
           <div className="flex flex-1 items-center justify-center text-sm text-text-5">
-            Select a loop on the left.
+            Select a topic on the left.
           </div>
         )}
       </main>
 
-      <NewLoopModal
+      <NewTopicModal
         open={newOpen}
         onClose={() => setNewOpen(false)}
         onCreated={onCreated}

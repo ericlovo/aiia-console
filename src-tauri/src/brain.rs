@@ -48,7 +48,7 @@ fn saved_brain_url() -> Option<String> {
 /// Resolve the effective Brain base URL. Precedence: saved Settings value,
 /// then the AIIA_BRAIN_URL env override, then the localhost default. Any
 /// trailing slash is stripped so callers can concatenate "/v1/..." paths.
-fn brain_base_url() -> String {
+pub(crate) fn brain_base_url() -> String {
     let url = saved_brain_url()
         .or_else(|| std::env::var("AIIA_BRAIN_URL").ok())
         .unwrap_or_else(|| DEFAULT_BRAIN_URL.to_string());
@@ -63,7 +63,7 @@ fn brain_api_key() -> Option<String> {
 }
 
 /// Attach the Brain API key header to a request if one is configured.
-fn with_key(req: reqwest::RequestBuilder) -> reqwest::RequestBuilder {
+pub(crate) fn with_key(req: reqwest::RequestBuilder) -> reqwest::RequestBuilder {
     match brain_api_key() {
         Some(k) => req.header("x-api-key", k),
         None => req,
@@ -88,7 +88,7 @@ pub const BRAIN_AUTH_ERR: &str = "BRAIN_AUTH";
 /// graceful "not detected" path. A 401/403 is different: the Brain *is* there
 /// and actively refused our key, so we surface `Err("BRAIN_AUTH:<code>")` and
 /// let the UI tell the user to fix their key rather than silently show empty.
-async fn brain_get_optional(path: &str) -> Result<Option<Value>, String> {
+pub(crate) async fn brain_get_optional(path: &str) -> Result<Option<Value>, String> {
     let url = format!("{}{}", brain_base_url(), path);
     let client = match brain_client() {
         Ok(c) => c,

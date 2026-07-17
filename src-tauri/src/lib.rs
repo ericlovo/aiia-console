@@ -13,6 +13,7 @@ use serde_json::Value;
 mod brain;
 mod keystore;
 mod loops;
+mod research;
 use brain::{
     brain_forget, brain_get_memory, brain_get_url, brain_list_memories, brain_remember,
     brain_search, brain_set_url, brain_status,
@@ -24,6 +25,11 @@ use keystore::{
 use loops::{
     loop_adapters_available, loop_belief, loop_create, loop_escalations, loop_generate_cases,
     loop_is_running, loop_launch, loop_list_instances, loop_status, loop_stop, loop_tail_log,
+};
+use research::{
+    research_create_erdos, research_create_literature, research_create_topic,
+    research_get_synthesis, research_get_topic, research_list_topics, research_run,
+    research_run_cancel, ResearchInflight,
 };
 
 // ---------- shared path helpers ----------
@@ -585,6 +591,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_shell::init())
         .manage(InflightCancel::new())
+        .manage(ResearchInflight::new())
         .manage(BrainSidecar(std::sync::Mutex::new(None)))
         .manage(OllamaSidecar(std::sync::Mutex::new(None)))
         .setup(|app| {
@@ -695,6 +702,14 @@ pub fn run() {
             brain_search,
             brain_get_url,
             brain_set_url,
+            research_list_topics,
+            research_get_topic,
+            research_get_synthesis,
+            research_create_topic,
+            research_create_erdos,
+            research_create_literature,
+            research_run,
+            research_run_cancel,
             loop_list_instances,
             loop_status,
             loop_belief,

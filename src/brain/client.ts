@@ -22,8 +22,10 @@ export class BrainAuthError extends Error {
 }
 
 // All Brain calls funnel through here so a 401/403 becomes a typed
-// BrainAuthError instead of a raw Tauri Err string.
-async function invokeBrain<T>(
+// BrainAuthError instead of a raw Tauri Err string. Exported for the other
+// Brain-backed surfaces (research/client.ts) so they inherit the same
+// auth-error contract.
+export async function invokeBrain<T>(
   cmd: string,
   args?: Record<string, unknown>,
 ): Promise<T> {
