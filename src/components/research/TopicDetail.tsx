@@ -62,7 +62,7 @@ function narrate(ev: RunEvent): { text: string; tone: "info" | "ok" | "warn" | "
     case "result":
       return ev.ok
         ? null // the next action line carries the story; keep the feed calm
-        : { text: `Step ${ev.iteration + 1} hit a snag — retrying`, tone: "warn" };
+        : { text: `Step ${ev.iteration + 1} failed: ${ev.preview.slice(0, 120)}`, tone: "warn" };
     case "fallback":
       return { text: `Wrapping up early: ${ev.reason}`, tone: "warn" };
     case "error":
@@ -92,11 +92,19 @@ function snapshot(t: ResearchTopic): Snapshot {
 }
 
 /** The checkpoint copy: what changed this run, and what it means. */
-function deltaCoach(before: Snapshot, after: Snapshot): string[] {
+function deltaCoach(before: Snapshot, after: Snapshot, seedCount: number): string[] {
   const lines: string[] = [];
   const newSources = after.sources - before.sources;
   if (newSources > 0) {
     lines.push(`${newSources} new ${newSources === 1 ? "source" : "sources"} read and indexed.`);
+  } else if (seedCount === 0) {
+    lines.push(
+      "This session read no sources — the topic has none to read, so the loop worked from thin air. Treat the synthesis with suspicion and add starting sources.",
+    );
+  } else {
+    lines.push(
+      "No sources were read this session even though the topic has some — fetches may be failing. Check the session feed above.",
+    );
   }
   if (after.gaps > before.gaps) {
     lines.push(
@@ -129,6 +137,12 @@ export function TopicDetail({ topicId }: { topicId: string }) {
   const [delta, setDelta] = useState<string[] | null>(null);
   const handleRef = useRef<RunHandle | null>(null);
   const feedEndRef = useRef<HTMLDivElement | null>(null);
+  // Consecutive identical failing actions — collapsed into one coach line so
+  // a small model spinning on a bad step doesn't flood the feed with noise.
+  const failStreakRef = useRef<{ action: string; count: number }>({
+    action: "",
+    count: 0,
+  });
 
   const refresh = useCallback(async () => {
     try {
@@ -164,9 +178,34 @@ export function TopicDetail({ topicId }: { topicId: string }) {
     setFeed([]);
     setStage("ask");
 
+    failStreakRef.current = { action: "", count: 0 };
     const handle = runSession(topic.id, (ev) => {
       if (ev.type === "action") setStage(stageFor(ev.action));
       if (ev.type === "done") setStage("again");
+
+      // Collapse a failure streak: show the first two identical failures,
+      // then one honest coach line, then silence until the streak breaks.
+      if (ev.type === "result" && !ev.ok) {
+        const streak = failStreakRef.current;
+        if (streak.action === ev.action) {
+          streak.count += 1;
+          if (streak.count === 3) {
+            setFeed((f) => [
+              ...f,
+              {
+                text: `The model keeps repeating the same failing step ("${ev.action}"). It may not have the sources it's looking for — stopping this session and adding sources is usually the fix.`,
+                tone: "warn",
+              },
+            ]);
+          }
+          if (streak.count >= 3) return;
+        } else {
+          failStreakRef.current = { action: ev.action, count: 1 };
+        }
+      } else if (ev.type === "result" || ev.type === "action") {
+        if (ev.type === "result") failStreakRef.current = { action: "", count: 0 };
+      }
+
       const line = narrate(ev);
       if (line) setFeed((f) => [...f, line]);
     });
@@ -177,7 +216,7 @@ export function TopicDetail({ topicId }: { topicId: string }) {
       const after = await getTopic(topic.id);
       if (after) {
         setTopic(after);
-        setDelta(deltaCoach(before, snapshot(after)));
+        setDelta(deltaCoach(before, snapshot(after), after.seeds.length));
       }
     } catch (e) {
       setFeed((f) => [

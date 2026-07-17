@@ -223,7 +223,19 @@ export async function brainRemember(input: {
     metadata: input.metadata ?? null,
   });
   const m = coerceMemory(raw);
-  if (!m) throw new Error("Brain returned an invalid memory shape");
+  if (!m) {
+    // The Brain's quality gate returns an empty object for facts it declines
+    // to store (too short / too vague — eq_brain/memory.py::_is_low_quality).
+    // Distinguish that from a genuinely malformed response so the user gets
+    // an actionable message instead of a scary shape error.
+    const r = asRecord(raw);
+    if (r && Object.keys(r).length === 0) {
+      throw new Error(
+        "The Brain declined to store this — too short or too vague for its quality gate. Add specifics (what, where, why) and try again.",
+      );
+    }
+    throw new Error("Brain returned an invalid memory shape");
+  }
   return m;
 }
 
