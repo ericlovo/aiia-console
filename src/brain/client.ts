@@ -269,6 +269,46 @@ export async function brainSearch(
   return { results, count: asNumber(r.count) ?? results.length };
 }
 
+// ---------- ops loops (ADR-008 — the M4's scheduled launchd loops) ----------
+
+export type OpsLoop = {
+  name: string;
+  label?: string;
+  schedule?: string;
+  last_run?: string;
+  last_status?: string;
+  last_output?: string;
+  last_note?: string;
+  last_tokens?: number;
+  runs?: number;
+};
+
+export async function brainOpsLoops(): Promise<OpsLoop[] | null> {
+  const raw = await invokeBrain<unknown>("brain_ops_loops");
+  if (!raw) return null;
+  const r = asRecord(raw);
+  const loopsRec = asRecord(r?.loops);
+  if (!loopsRec) return null;
+  const loops: OpsLoop[] = [];
+  for (const [name, v] of Object.entries(loopsRec)) {
+    const e = asRecord(v);
+    if (!e) continue;
+    loops.push({
+      name,
+      label: asString(e.label),
+      schedule: asString(e.schedule),
+      last_run: asString(e.last_run),
+      last_status: asString(e.last_status),
+      last_output: asString(e.last_output),
+      last_note: asString(e.last_note),
+      last_tokens: asNumber(e.last_tokens),
+      runs: asNumber(e.runs),
+    });
+  }
+  loops.sort((a, b) => (b.last_run ?? "").localeCompare(a.last_run ?? ""));
+  return loops;
+}
+
 // Derive the category for a memory. The Brain includes `category` when
 // listing without a filter, but omits it when the request itself filtered by
 // category. We can also recover it from the id prefix (`<category>_<seq>_<ts>`).

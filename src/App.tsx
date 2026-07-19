@@ -5,11 +5,12 @@ import { ChatTab } from "./components/ChatTab";
 import { MemoryTab } from "./components/MemoryTab";
 import { JournalTab } from "./components/JournalTab";
 import { ResearchTab } from "./components/ResearchTab";
+import { LoopsTab } from "./components/LoopsTab";
 import "./App.css";
 
 const ACTIVE_VIEW_KEY = "aiia-console-active-tab";
 
-type View = "chat" | "memory" | "journal" | "research";
+type View = "chat" | "memory" | "journal" | "research" | "loops";
 
 function readActiveView(): View {
   if (typeof window === "undefined") return "chat";
@@ -17,6 +18,7 @@ function readActiveView(): View {
   if (raw === "memory") return "memory";
   if (raw === "journal") return "journal";
   if (raw === "research") return "research";
+  if (raw === "loops") return "loops";
   return "chat";
 }
 
@@ -46,6 +48,13 @@ function App() {
           </span>
         </button>
         <div className="flex items-center gap-1">
+          <CornerButton
+            label="Loops"
+            active={view === "loops"}
+            onClick={() => setView(view === "loops" ? "chat" : "loops")}
+          >
+            <LoopsIcon />
+          </CornerButton>
           <CornerButton
             label="Research"
             active={view === "research"}
@@ -88,6 +97,7 @@ function App() {
         {view === "journal" && <JournalTab />}
         {view === "memory" && <MemoryTab />}
         {view === "research" && <ResearchTab />}
+        {view === "loops" && <LoopsTab />}
       </div>
     </div>
   );
@@ -134,6 +144,16 @@ const iconProps = {
   className: "h-[18px] w-[18px]",
   "aria-hidden": true,
 };
+
+// Loops — circular arrows (the engine gauge)
+function LoopsIcon() {
+  return (
+    <svg {...iconProps}>
+      <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+      <path d="M21 3v5h-5" />
+    </svg>
+  );
+}
 
 // Research — magnifying glass
 function ResearchIcon() {
