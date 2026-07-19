@@ -16,7 +16,7 @@ mod loops;
 mod research;
 use brain::{
     brain_forget, brain_get_memory, brain_get_url, brain_list_memories, brain_ops_loops,
-    brain_remember, brain_search, brain_set_url, brain_status,
+    brain_remember, brain_search, brain_set_url, brain_status, brain_tokens_today,
 };
 use keystore::{
     keystore_call, keystore_call_cancel, keystore_delete_key, keystore_get_keys,
@@ -696,6 +696,7 @@ pub fn run() {
             keystore_transcribe,
             brain_status,
             brain_ops_loops,
+            brain_tokens_today,
             brain_list_memories,
             brain_get_memory,
             brain_remember,

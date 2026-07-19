@@ -6,20 +6,23 @@ import { MemoryTab } from "./components/MemoryTab";
 import { JournalTab } from "./components/JournalTab";
 import { ResearchTab } from "./components/ResearchTab";
 import { LoopsTab } from "./components/LoopsTab";
+import { TodayTab } from "./components/TodayTab";
 import "./App.css";
 
 const ACTIVE_VIEW_KEY = "aiia-console-active-tab";
 
-type View = "chat" | "memory" | "journal" | "research" | "loops";
+type View = "today" | "chat" | "memory" | "journal" | "research" | "loops";
 
+// Today is the home surface (ADR-009): the app opens on what the M4 did.
 function readActiveView(): View {
-  if (typeof window === "undefined") return "chat";
+  if (typeof window === "undefined") return "today";
   const raw = window.localStorage.getItem(ACTIVE_VIEW_KEY);
+  if (raw === "chat") return "chat";
   if (raw === "memory") return "memory";
   if (raw === "journal") return "journal";
   if (raw === "research") return "research";
   if (raw === "loops") return "loops";
-  return "chat";
+  return "today";
 }
 
 function App() {
@@ -36,9 +39,9 @@ function App() {
       <header className="flex items-center justify-between px-6 py-4">
         <button
           type="button"
-          onClick={() => setView("chat")}
+          onClick={() => setView("today")}
           className="flex items-center focus:outline-none"
-          aria-label="Chat"
+          aria-label="Today"
         >
           <span
             className="font-display text-lg tracking-[0.40em] text-ink-900 transition-colors hover:text-ink-700"
@@ -48,6 +51,13 @@ function App() {
           </span>
         </button>
         <div className="flex items-center gap-1">
+          <CornerButton
+            label="Chat"
+            active={view === "chat"}
+            onClick={() => setView(view === "chat" ? "today" : "chat")}
+          >
+            <ChatIcon />
+          </CornerButton>
           <CornerButton
             label="Loops"
             active={view === "loops"}
@@ -93,6 +103,7 @@ function App() {
 
       {/* View body */}
       <div className="flex min-h-0 flex-1">
+        {view === "today" && <TodayTab />}
         {view === "chat" && <ChatTab />}
         {view === "journal" && <JournalTab />}
         {view === "memory" && <MemoryTab />}
@@ -144,6 +155,15 @@ const iconProps = {
   className: "h-[18px] w-[18px]",
   "aria-hidden": true,
 };
+
+// Chat — speech bubble
+function ChatIcon() {
+  return (
+    <svg {...iconProps}>
+      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+    </svg>
+  );
+}
 
 // Loops — circular arrows (the engine gauge)
 function LoopsIcon() {

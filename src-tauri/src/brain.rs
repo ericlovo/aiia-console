@@ -137,6 +137,11 @@ pub async fn brain_ops_loops() -> Result<Option<Value>, String> {
 }
 
 #[tauri::command]
+pub async fn brain_tokens_today() -> Result<Option<Value>, String> {
+    brain_get_optional("/v1/tokens/today").await
+}
+
+#[tauri::command]
 pub async fn brain_list_memories(
     category: Option<String>,
     limit: Option<u32>,

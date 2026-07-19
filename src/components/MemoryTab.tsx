@@ -27,6 +27,7 @@ import {
 import { AddMemoryModal } from "./memory/AddMemoryModal";
 import { MemoryDetail } from "./memory/MemoryDetail";
 import { MemoryGlobe } from "./memory/MemoryGlobe";
+import { MemoryList } from "./memory/MemoryList";
 import {
   MemorySidebar,
   type CategoryFilter,
@@ -40,6 +41,18 @@ type Toast = { kind: "error" | "info"; message: string } | null;
 // limits for that reason). The graph view has no such budget: it's meant to
 // show the whole store, so it asks for everything explicitly.
 const ALL_MEMORIES_LIMIT = 100_000;
+
+// The workbench table is the primary view (ADR-009); the globe is the
+// toggle-away visualization. Persisted so the choice sticks across sessions.
+const MEMORY_VIEW_KEY = "aiia-console-memory-view";
+type MemoryView = "table" | "graph";
+
+function readMemoryView(): MemoryView {
+  if (typeof window === "undefined") return "table";
+  return window.localStorage.getItem(MEMORY_VIEW_KEY) === "graph"
+    ? "graph"
+    : "table";
+}
 
 export function MemoryTab() {
   const [status, setStatus] = useState<BrainStatus | null>(null);
@@ -58,6 +71,11 @@ export function MemoryTab() {
   const [searching, setSearching] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [toast, setToast] = useState<Toast>(null);
+  const [view, setView] = useState<MemoryView>(readMemoryView);
+
+  useEffect(() => {
+    window.localStorage.setItem(MEMORY_VIEW_KEY, view);
+  }, [view]);
 
   // Track graph container dimensions so the force graph sizes correctly.
   const graphContainerRef = useRef<HTMLDivElement | null>(null);
@@ -229,6 +247,31 @@ export function MemoryTab() {
     [loadMemories],
   );
 
+  const handleForgetMany = useCallback(
+    async (ids: string[]) => {
+      let failed = 0;
+      for (const id of ids) {
+        try {
+          const ok = await brainForget(id);
+          if (!ok) failed++;
+        } catch {
+          failed++;
+        }
+      }
+      setSelectedId((s) => (s && ids.includes(s) ? null : s));
+      setToast(
+        failed === 0
+          ? { kind: "info", message: `Forgot ${ids.length} memories.` }
+          : {
+              kind: "error",
+              message: `Forgot ${ids.length - failed}, ${failed} failed.`,
+            },
+      );
+      await loadMemories();
+    },
+    [loadMemories],
+  );
+
   const handleExport = useCallback(async (m: Memory) => {
     const json = JSON.stringify(m, null, 2);
     const blob = new Blob([json], { type: "application/json" });
@@ -371,10 +414,37 @@ export function MemoryTab() {
 
       <main
         ref={graphContainerRef}
-        className="relative flex min-h-0 min-w-0 flex-1 overflow-hidden bg-void"
+        className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-void"
       >
+        {/* View toggle: workbench table is primary, globe is the visualization */}
+        <div className="flex items-center gap-1 border-b border-carbon-4 px-4 py-1.5">
+          {(["table", "graph"] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setView(v)}
+              aria-pressed={view === v}
+              className={
+                "rounded-md px-2.5 py-1 text-xs capitalize focus:outline-none focus-visible:ring-2 focus-visible:ring-amethyst-500 " +
+                (view === v
+                  ? "bg-carbon-2 text-text-1"
+                  : "text-text-4 hover:text-text-2")
+              }
+            >
+              {v}
+            </button>
+          ))}
+        </div>
+
         {loading ? (
           <GraphSkeleton />
+        ) : view === "table" ? (
+          <MemoryList
+            memories={filteredMemories}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            onForgetMany={handleForgetMany}
+          />
         ) : (
           <MemoryGlobe
             memories={filteredMemories}
