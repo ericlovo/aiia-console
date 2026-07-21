@@ -44,6 +44,24 @@ function monthLabel(ms: number): string {
   });
 }
 
+// Absolute timestamp — the thing "search by date" needs to actually see.
+function exactTime(ms: number): string {
+  if (!ms) return "";
+  return new Date(ms).toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+const RECENCY: { id: string; label: string; ms: number }[] = [
+  { id: "all", label: "All", ms: Infinity },
+  { id: "1d", label: "24h", ms: 86_400_000 },
+  { id: "7d", label: "7 days", ms: 7 * 86_400_000 },
+  { id: "30d", label: "30 days", ms: 30 * 86_400_000 },
+];
+
 const PAGE = 200;
 
 export function MemoryList({
@@ -58,6 +76,7 @@ export function MemoryList({
   onForgetMany: (ids: string[]) => Promise<void>;
 }) {
   const [quickFilter, setQuickFilter] = useState("");
+  const [recency, setRecency] = useState("all");
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [limit, setLimit] = useState(PAGE);
   const [pruning, setPruning] = useState(false);
@@ -65,15 +84,18 @@ export function MemoryList({
 
   const rows = useMemo(() => {
     const q = quickFilter.trim().toLowerCase();
-    const filtered = q
-      ? memories.filter(
-          (m) =>
-            m.fact.toLowerCase().includes(q) ||
-            (m.source ?? "").toLowerCase().includes(q),
-        )
-      : memories;
+    const window = RECENCY.find((r) => r.id === recency)?.ms ?? Infinity;
+    const cutoff = window === Infinity ? 0 : Date.now() - window;
+    const filtered = memories.filter((m) => {
+      if (cutoff && memoryTime(m) < cutoff) return false;
+      if (!q) return true;
+      return (
+        m.fact.toLowerCase().includes(q) ||
+        (m.source ?? "").toLowerCase().includes(q)
+      );
+    });
     return [...filtered].sort((a, b) => memoryTime(b) - memoryTime(a));
-  }, [memories, quickFilter]);
+  }, [memories, quickFilter, recency]);
 
   const visible = rows.slice(0, limit);
 
@@ -124,6 +146,28 @@ export function MemoryList({
             ? `${rows.length} memories`
             : `${rows.length} of ${memories.length}`}
         </span>
+        <div className="flex items-center gap-1">
+          {RECENCY.map((r) => (
+            <button
+              key={r.id}
+              type="button"
+              onClick={() => {
+                setRecency(r.id);
+                setLimit(PAGE);
+              }}
+              aria-pressed={recency === r.id}
+              title={r.id === "all" ? "All memories" : `Last ${r.label}`}
+              className={
+                "rounded-md px-2 py-0.5 text-xs focus:outline-none " +
+                (recency === r.id
+                  ? "bg-carbon-2 text-text-1"
+                  : "text-text-5 hover:text-text-2")
+              }
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
         <div className="flex-1" />
         {checked.size > 0 && (
           <button
@@ -209,7 +253,11 @@ export function MemoryList({
                     {m.source ? ` · ${m.source}` : ""}
                   </p>
                 </div>
-                <span className="mt-0.5 shrink-0 text-[11px] tabular-nums text-text-5">
+                <span
+                  className="mt-0.5 shrink-0 text-right text-[11px] tabular-nums text-text-5"
+                  title={t ? new Date(t).toLocaleString() : "no timestamp"}
+                >
+                  <span className="block text-text-4">{exactTime(t) || "—"}</span>
                   {ageLabel(t)}
                 </span>
               </div>
