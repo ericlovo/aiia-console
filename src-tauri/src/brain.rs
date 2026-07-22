@@ -132,6 +132,11 @@ pub async fn brain_status() -> Result<Option<Value>, String> {
 }
 
 #[tauri::command]
+pub async fn brain_ops_loops() -> Result<Option<Value>, String> {
+    brain_get_optional("/v1/loops").await
+}
+
+#[tauri::command]
 pub async fn brain_list_memories(
     category: Option<String>,
     limit: Option<u32>,
