@@ -59,10 +59,10 @@ export function LoopsTab() {
   return (
     <div className="flex flex-1 justify-center overflow-y-auto px-6 py-8">
       <div className="w-full max-w-2xl">
-        <h1 className="font-display text-xl text-ink-900">Loops</h1>
+        <h1 className="font-display text-xl text-ink-900">Agents</h1>
         <p className="mt-1 text-sm text-ink-600">
-          What this machine does on its own. Each card is a scheduled loop
-          running locally — free tokens, no cloud.
+          Each agent is a local model running one looped task on this machine —
+          on a schedule, for free. Here's what they are and what they do.
         </p>
 
         {state === "loading" && (
@@ -96,41 +96,78 @@ export function LoopsTab() {
 
 function LoopCard({ loop }: { loop: OpsLoop }) {
   const ok = loop.last_status === "ok";
+  const neverRun = !loop.last_run;
   return (
     <div className="rounded-xl border border-carbon-4 bg-vellum-50 px-5 py-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <span
-            aria-label={ok ? "last run ok" : `last run ${loop.last_status}`}
-            className={
-              "h-2 w-2 rounded-full " +
-              (ok ? "bg-mint-600" : "bg-cinnabar-500")
-            }
-          />
-          <span className="font-medium text-ink-900">{loop.name}</span>
-          {loop.schedule && (
-            <span className="rounded-full bg-vellum-100 px-2 py-0.5 text-xs text-ink-600">
-              {loop.schedule}
-            </span>
-          )}
-        </div>
-        <span className="text-xs text-ink-600">
-          {relativeTime(loop.last_run)}
-          {typeof loop.runs === "number" && ` · ${loop.runs} runs`}
+      {/* Identity: name + what kind of agent */}
+      <div className="flex items-center gap-2.5">
+        <span
+          aria-label={
+            neverRun ? "never run" : ok ? "last run ok" : `last run ${loop.last_status}`
+          }
+          className={
+            "h-2 w-2 shrink-0 rounded-full " +
+            (neverRun ? "bg-ink-500" : ok ? "bg-mint-600" : "bg-cinnabar-500")
+          }
+        />
+        <span className="font-medium text-ink-900">{loop.name}</span>
+        {loop.kind && (
+          <span className="rounded-full bg-vellum-100 px-2 py-0.5 text-[11px] uppercase tracking-wide text-ink-600">
+            {loop.kind}
+          </span>
+        )}
+        <span className="ml-auto text-xs text-ink-600">
+          {neverRun ? "never run" : relativeTime(loop.last_run)}
+          {typeof loop.runs === "number" && loop.runs > 0 && ` · ${loop.runs} runs`}
         </span>
       </div>
-      {loop.last_note && (
-        <p className="mt-2 text-sm text-ink-700">{loop.last_note}</p>
+
+      {/* What it does — the plain-language answer to "what is this?" */}
+      {loop.does && (
+        <p className="mt-2 text-[13px] leading-relaxed text-ink-700">{loop.does}</p>
       )}
-      {loop.last_output && (
-        <button
-          type="button"
-          onClick={() => void openPath(loop.last_output!)}
-          title="Open the file this loop last produced"
-          className="mt-2 block max-w-full truncate text-left text-xs text-ink-600 underline decoration-carbon-4 underline-offset-2 hover:text-ink-900"
-        >
-          {shortPath(loop.last_output)}
-        </button>
+
+      {/* Parameters: the agent's actual config, stated */}
+      <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-ink-600">
+        {loop.model && (
+          <span>
+            <span className="text-ink-500">model</span>{" "}
+            <span className="text-ink-800">{loop.model}</span>
+          </span>
+        )}
+        {(loop.trigger || loop.schedule) && (
+          <span>
+            <span className="text-ink-500">trigger</span>{" "}
+            <span className="text-ink-800">{loop.trigger ?? loop.schedule}</span>
+          </span>
+        )}
+        {loop.execution && (
+          <span>
+            <span className="text-ink-500">acts</span>{" "}
+            <span className="text-ink-800">
+              {loop.execution === "propose" ? "proposes only" : loop.execution}
+            </span>
+          </span>
+        )}
+      </div>
+
+      {/* Last run outcome + its artifact */}
+      {(loop.last_note || loop.last_output) && (
+        <div className="mt-2.5 border-t border-carbon-3 pt-2">
+          {loop.last_note && (
+            <p className="text-xs text-ink-600">Last run: {loop.last_note}</p>
+          )}
+          {loop.last_output && (
+            <button
+              type="button"
+              onClick={() => void openPath(loop.last_output!)}
+              title="Open what this agent last produced"
+              className="mt-1 block max-w-full truncate text-left text-xs text-ink-600 underline decoration-carbon-4 underline-offset-2 hover:text-ink-900"
+            >
+              {shortPath(loop.last_output)}
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

@@ -4,14 +4,13 @@ import { SettingsModal } from "./components/SettingsModal";
 import { ChatTab } from "./components/ChatTab";
 import { MemoryTab } from "./components/MemoryTab";
 import { JournalTab } from "./components/JournalTab";
-import { ResearchTab } from "./components/ResearchTab";
 import { LoopsTab } from "./components/LoopsTab";
 import { TodayTab } from "./components/TodayTab";
 import "./App.css";
 
 const ACTIVE_VIEW_KEY = "aiia-console-active-tab";
 
-type View = "today" | "chat" | "memory" | "journal" | "research" | "loops";
+type View = "today" | "chat" | "memory" | "journal" | "loops";
 
 // Today is the home surface (ADR-009): the app opens on what the M4 did.
 function readActiveView(): View {
@@ -20,7 +19,6 @@ function readActiveView(): View {
   if (raw === "chat") return "chat";
   if (raw === "memory") return "memory";
   if (raw === "journal") return "journal";
-  if (raw === "research") return "research";
   if (raw === "loops") return "loops";
   return "today";
 }
@@ -59,18 +57,11 @@ function App() {
             <ChatIcon />
           </CornerButton>
           <CornerButton
-            label="Loops"
+            label="Agents"
             active={view === "loops"}
-            onClick={() => setView(view === "loops" ? "chat" : "loops")}
+            onClick={() => setView(view === "loops" ? "today" : "loops")}
           >
             <LoopsIcon />
-          </CornerButton>
-          <CornerButton
-            label="Research"
-            active={view === "research"}
-            onClick={() => setView(view === "research" ? "chat" : "research")}
-          >
-            <ResearchIcon />
           </CornerButton>
           <CornerButton
             label="Journal"
@@ -107,7 +98,6 @@ function App() {
         {view === "chat" && <ChatTab />}
         {view === "journal" && <JournalTab />}
         {view === "memory" && <MemoryTab />}
-        {view === "research" && <ResearchTab />}
         {view === "loops" && <LoopsTab />}
       </div>
     </div>
@@ -171,16 +161,6 @@ function LoopsIcon() {
     <svg {...iconProps}>
       <path d="M21 12a9 9 0 1 1-2.64-6.36" />
       <path d="M21 3v5h-5" />
-    </svg>
-  );
-}
-
-// Research — magnifying glass
-function ResearchIcon() {
-  return (
-    <svg {...iconProps}>
-      <circle cx="11" cy="11" r="7" />
-      <path d="m20 20-3.6-3.6" />
     </svg>
   );
 }

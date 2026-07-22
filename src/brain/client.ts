@@ -281,6 +281,12 @@ export type OpsLoop = {
   last_note?: string;
   last_tokens?: number;
   runs?: number;
+  // Agent definition (what it is, from the brain's AGENT_DEFS)
+  kind?: string;
+  model?: string;
+  does?: string;
+  trigger?: string;
+  execution?: string;
 };
 
 export async function brainOpsLoops(): Promise<OpsLoop[] | null> {
@@ -303,6 +309,11 @@ export async function brainOpsLoops(): Promise<OpsLoop[] | null> {
       last_note: asString(e.last_note),
       last_tokens: asNumber(e.last_tokens),
       runs: asNumber(e.runs),
+      kind: asString(e.kind),
+      model: asString(e.model),
+      does: asString(e.does),
+      trigger: asString(e.trigger),
+      execution: asString(e.execution),
     });
   }
   loops.sort((a, b) => (b.last_run ?? "").localeCompare(a.last_run ?? ""));
