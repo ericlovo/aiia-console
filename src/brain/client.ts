@@ -309,6 +309,64 @@ export async function brainOpsLoops(): Promise<OpsLoop[] | null> {
   return loops;
 }
 
+// ---------- token observability (ADR-008 KPI: what were the tokens for) ----------
+
+export type PurposeSpend = {
+  purpose: string;
+  tokens: number;
+  requests: number;
+  providers: string[];
+  model?: string;
+};
+
+export type TokensToday = {
+  date?: string;
+  totalTokens: number;
+  totalCost: number;
+  totalRequests: number;
+  localTokens: number;
+  cloudTokens: number;
+  byPurpose: PurposeSpend[];
+};
+
+export async function brainTokensToday(): Promise<TokensToday | null> {
+  const raw = await invokeBrain<unknown>("brain_tokens_today");
+  const r = asRecord(raw);
+  if (!r || r.error) return null;
+  const byProvider = asRecord(r.by_provider) ?? {};
+  let local = 0;
+  let cloud = 0;
+  for (const [name, v] of Object.entries(byProvider)) {
+    const t = asNumber(asRecord(v)?.tokens) ?? 0;
+    if (name === "local") local += t;
+    else cloud += t;
+  }
+  const byPurpose: PurposeSpend[] = [];
+  for (const [purpose, v] of Object.entries(asRecord(r.by_purpose) ?? {})) {
+    const e = asRecord(v);
+    if (!e) continue;
+    byPurpose.push({
+      purpose,
+      tokens: asNumber(e.tokens) ?? 0,
+      requests: asNumber(e.requests) ?? 0,
+      providers: Array.isArray(e.providers)
+        ? e.providers.filter((p): p is string => typeof p === "string")
+        : [],
+      model: asString(e.model),
+    });
+  }
+  byPurpose.sort((a, b) => b.tokens - a.tokens);
+  return {
+    date: asString(r.date),
+    totalTokens: asNumber(r.total_tokens) ?? 0,
+    totalCost: asNumber(r.total_cost) ?? 0,
+    totalRequests: asNumber(r.total_requests) ?? 0,
+    localTokens: local,
+    cloudTokens: cloud,
+    byPurpose,
+  };
+}
+
 // Derive the category for a memory. The Brain includes `category` when
 // listing without a filter, but omits it when the request itself filtered by
 // category. We can also recover it from the id prefix (`<category>_<seq>_<ts>`).

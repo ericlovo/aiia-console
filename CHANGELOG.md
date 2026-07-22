@@ -5,6 +5,23 @@ All notable changes to AIIA Console will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-07-21
+
+### Added
+- **Today** home view: standup brief, backlog-steward report, code-review
+  findings, loop-status pills, and a "Compute spent today" panel (local vs
+  cloud tokens with per-purpose breakdown in plain language)
+- **Memory workbench**: dense table view of the whole store as the primary
+  Memory surface — substring filter, date-range chips (24h/7d/30d/All),
+  real timestamps per row, newest-first timeline, bulk forget. The 3D globe
+  demotes to an optional "Graph" toggle
+- **Loops** tab: live view of the M4's scheduled ops loops from `/v1/loops`
+  — last run, status, output, click-through to the vault note
+- Purpose-attributed token observability wired through to the Today panel
+
+### Changed
+- Default view is now Today, not Chat; Chat gets its own corner icon
+
 ## [Unreleased]
 
 ### Added
